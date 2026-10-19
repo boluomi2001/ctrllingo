@@ -86,6 +86,9 @@ impl Worker {
             }
             let start = Instant::now();
             if !pending.is_empty() && self.suspension.active(start) {
+                for request in &pending {
+                    self.fail(request);
+                }
                 continue;
             }
             last_sent = Some(start);
@@ -198,6 +201,7 @@ impl Worker {
                 if !self.suspension.record(&error, Instant::now(), "联想") {
                     tracing::warn!(sequence = request.sequence, %error, "联想失败");
                 }
+                self.fail(request);
             }
         }
     }
@@ -209,5 +213,17 @@ impl Worker {
             words: reply.words,
             sentence: reply.sentence,
         });
+    }
+
+    fn fail(&self, request: &PredictionRequest) {
+        if request.kind == PredictionKind::Translate {
+            self.reply(
+                request.sequence,
+                Reply {
+                    words: Vec::new(),
+                    sentence: None,
+                },
+            );
+        }
     }
 }

@@ -32,6 +32,25 @@ fn request(sequence: u64, manual: bool) -> PredictionRequest {
     }
 }
 
+fn translation_request(sequence: u64, text: &str) -> PredictionRequest {
+    PredictionRequest {
+        sequence,
+        manual: true,
+        kind: PredictionKind::Translate,
+        before: String::new(),
+        after: String::new(),
+        pinyin: String::new(),
+        letters: String::new(),
+        syllables: 0,
+        candidates: Vec::new(),
+        guess: String::new(),
+        max_items: 1,
+        want_sentence: true,
+        text: text.to_owned(),
+        target_language: "en".to_owned(),
+    }
+}
+
 fn with_worker(
     debounce_ms: u64,
     interval_ms: u64,
@@ -212,6 +231,47 @@ fn manual_request_skips_debounce_and_cached_reply_skips_interval() {
         assert_eq!(cached.sequence, 2);
         assert_eq!(cached.words, first.words);
         assert!(calls.recv_timeout(Duration::from_millis(100)).is_err());
+    });
+}
+
+#[test]
+fn sentence_translation_cache_replies_without_a_second_network_call() {
+    with_worker(1000, 3000, 200, |requests, responses, calls| {
+        requests
+            .send(Some(translation_request(1, "你好世界")))
+            .unwrap();
+        calls.recv_timeout(Duration::from_millis(500)).unwrap();
+        let first = responses.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(first.sentence.is_some());
+
+        requests
+            .send(Some(translation_request(2, "你好世界")))
+            .unwrap();
+        let cached = responses.recv_timeout(Duration::from_millis(500)).unwrap();
+        assert_eq!(cached.sequence, 2);
+        assert_eq!(cached.sentence, first.sentence);
+        assert!(calls.recv_timeout(Duration::from_millis(100)).is_err());
+    });
+}
+
+#[test]
+fn failed_translation_and_suspended_retry_both_reply_with_empty_results() {
+    with_worker(0, 0, 401, |requests, responses, calls| {
+        requests
+            .send(Some(translation_request(1, "你好世界")))
+            .unwrap();
+        calls.recv_timeout(Duration::from_secs(2)).unwrap();
+        let failed = responses.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(failed.sequence, 1);
+        assert!(failed.sentence.is_none());
+
+        requests
+            .send(Some(translation_request(2, "你好朋友")))
+            .unwrap();
+        let suspended = responses.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(suspended.sequence, 2);
+        assert!(suspended.sentence.is_none());
+        assert!(calls.recv_timeout(Duration::from_millis(250)).is_err());
     });
 }
 

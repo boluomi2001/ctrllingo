@@ -23,7 +23,7 @@ pub(crate) enum Composed {
 
         translation_first: bool,
 
-        /// 首条本地整句候选的云端译文；未返回时为 `None`。
+        /// 当前高亮候选的手动云端译文；未请求或未返回时为 `None`。
         sentence_translation: Option<SentenceTranslation>,
 
         /// 正在等待的手动请求序号，收到后消费；重建输入时清除。

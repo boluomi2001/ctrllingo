@@ -29,6 +29,7 @@ fn alt_digit_commits_a_sentence_translation() {
         .set_predictor(Box::new(SentenceTranslator::new(submitted)));
     let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
     let slot = slot_of(&frame, "想开发");
+    press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
     let (outcome, commit, after) = press(&mut router, digit_with(slot, TRANSLATE));
     assert_eq!(
         (outcome, commit.as_deref()),

@@ -11,6 +11,7 @@ switch_mode = ["shift"]
 
 [predict]
 enabled = false
+automatic = false
 sentence_translation = true
 vocabulary_translation = false
 debounce_ms = 350

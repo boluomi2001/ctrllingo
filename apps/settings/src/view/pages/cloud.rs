@@ -18,7 +18,11 @@ const FIELD_WIDTH: f32 = 260.0;
 pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
     let theme = &page.theme;
     let predict = &page.settings.config.predict;
-    let off = !predict.enabled;
+    let ctrl_translation = Feature::CtrlSwapTranslation.here();
+    let manual_translation = ctrl_translation
+        && page.settings.config.shortcut.ctrl_swap_translation
+        && predict.sentence_translation;
+    let off = !predict.enabled || manual_translation;
     let mut out = Vec::new();
 
     let slots = predict.slots.min(MAX_SLOTS);
@@ -41,10 +45,14 @@ pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
         ui,
         page,
         "启用",
-        Some("打字时把光标附近几十个字发给下面的服务，让模型补全整句、联想下文；密码框里不发"),
+        Some(if manual_translation {
+            "Ctrl 按需翻译已启用：自动云联想、释义兜底和生词本云翻译暂停，普通中文输入不请求模型"
+        } else {
+            "打字时把光标附近几十个字发给下面的服务，让模型补全整句、联想下文；密码框里不发"
+        }),
         ("predict", "enabled"),
-        predict.enabled,
-        false,
+        predict.enabled && !manual_translation,
+        manual_translation,
     )?];
     if Feature::CloudRequestControls.here() {
         rows.extend([
@@ -54,7 +62,7 @@ pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
                 "自动联想",
                 Some("停键后自动请求；关掉后在组句中按配置的快捷键手动联想，默认 Ctrl + Alt + J"),
                 ("predict", "automatic"),
-                predict.automatic,
+                predict.automatic && !manual_translation,
                 off,
             )?,
             timing(
@@ -89,12 +97,14 @@ pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
             ui,
             page,
             "整句候选翻译",
-            Some(
-                "本地整句候选出来后，单独把这条候选发给服务，译文随后显示在它右侧；不发光标前后的文字",
-            ),
+            Some(if ctrl_translation {
+                "连续输入整句拼音，核对中文后单独松开 Ctrl 请求当前高亮译文，再按空格输出英文；改字或改选后重新按 Ctrl"
+            } else {
+                "本地整句候选出来后，单独把这条候选发给服务，译文随后显示在它右侧；不发光标前后的文字"
+            }),
             ("predict", "sentence_translation"),
             predict.sentence_translation,
-            off,
+            if ctrl_translation { !page.settings.config.shortcut.ctrl_swap_translation } else { off },
         )?,
     ]);
     if Feature::VocabularyTranslation.here() {
@@ -104,7 +114,7 @@ pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
             "生词本整句翻译",
             Some("打完一句话后单独把这句发给服务，译文记进生词本的时间线；不发光标前后的文字"),
             ("predict", "vocabulary_translation"),
-            predict.vocabulary_translation,
+            predict.vocabulary_translation && !manual_translation,
             off,
         )?);
     }

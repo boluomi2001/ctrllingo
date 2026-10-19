@@ -14,6 +14,10 @@ pub trait StatusSink: Send {
 
     /// 用浏览器打开下载页（右键菜单的「有新版本」）。
     fn open_download(&self) {}
+
+    fn open_usage_costs(&self, _text: String) {}
+
+    fn open_billing(&self) {}
 }
 
 /// 不画状态条的空实现。

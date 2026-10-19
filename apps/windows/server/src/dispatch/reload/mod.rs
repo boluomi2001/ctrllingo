@@ -22,6 +22,7 @@ pub(super) const CONFIG_POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 /// 检查更新的结果文件名，在用户数据目录下（见 `qingjian-update::UpdateState`）。
 const UPDATE_STATE_FILE: &str = "update.json";
+use super::cost::CostMonitor;
 use super::{Router, RouterConfig};
 use crate::assembly;
 
@@ -29,6 +30,16 @@ fn mtime(path: &Path) -> Option<SystemTime> {
     std::fs::metadata(path)
         .and_then(|meta| meta.modified())
         .ok()
+}
+
+pub fn effective_predict_config(config: &Config) -> PredictConfig {
+    let mut predict = config.predict.clone();
+    if config.shortcut.ctrl_swap_translation && predict.sentence_translation {
+        predict.enabled = false;
+        predict.automatic = false;
+        predict.vocabulary_translation = false;
+    }
+    predict
 }
 
 /// 按 `[predict]` 接云联想、整句候选翻译与释义兜底；关着或缺密钥就退回本地实现。启动与热加载共用。
@@ -123,6 +134,10 @@ impl Router {
         root: PathBuf,
         dirs: DataDirs,
     ) {
+        self.costs = dirs
+            .user_root
+            .as_ref()
+            .map(|dir| CostMonitor::new(&config.predict, dir));
         let last_mtime = mtime(&config_path);
         let code_files = dirs.code_snapshot();
         let dictionary_files = dirs.dict_snapshot();
@@ -209,6 +224,8 @@ impl Router {
 
     /// 应用新配置。学习语言变了换释义表（词汇等级表启动时已全装，不用换）。
     fn apply_config(&mut self, config: &Config) {
+        let previous_translation_mode =
+            self.config.ctrl_swap_translation && self.config.sentence_translation;
         self.engine.set_fuzzy(config.fuzzy);
         // Windows 端此前漏装 custom_phrases（macOS 端 apply_config 有）；失败只记日志，保持原短语
         if let Err(error) = self
@@ -263,13 +280,25 @@ impl Router {
             return;
         };
         reload.update = config.update.clone();
-        if config.predict != reload.applied_predict {
+        let translation_mode =
+            self.config.ctrl_swap_translation && self.config.sentence_translation;
+        if config.predict != reload.applied_predict || previous_translation_mode != translation_mode
+        {
             let usage_path = reload
                 .dirs
                 .user_root
                 .as_ref()
                 .map(|dir| dir.join(API_USAGE_FILE));
-            attach_cloud(&mut self.engine, &config.predict, usage_path);
+            attach_cloud(
+                &mut self.engine,
+                &effective_predict_config(config),
+                usage_path,
+            );
+            self.costs = reload
+                .dirs
+                .user_root
+                .as_ref()
+                .map(|dir| CostMonitor::new(&config.predict, dir));
             reload.applied_predict = config.predict.clone();
         }
         let language = assembly::learning_language(config);

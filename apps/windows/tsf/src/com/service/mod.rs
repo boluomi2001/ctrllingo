@@ -102,7 +102,7 @@ pub struct TextService {
     input_settings: Cell<Option<InputSettings>>,
 
     /// 右键菜单打勾用的开关状态，Server 随 `SyncMode` 每一拍带下来。
-    indicator_state: Cell<IndicatorState>,
+    indicator_state: RefCell<IndicatorState>,
 
     /// 激活后一小段时间内忽略转换模式 compartment 的变化，见 [`TextService_Impl::sync_from_conversion_mode`]。
     conversion_guard_until: Cell<Option<Instant>>,
@@ -201,7 +201,7 @@ impl TextService {
             punctuation_combo: Cell::new(None),
             predict_combo: Cell::new(None),
             input_settings: Cell::new(None),
-            indicator_state: Cell::new(IndicatorState::default()),
+            indicator_state: RefCell::new(IndicatorState::default()),
             conversion_guard_until: Cell::new(None),
             launch_grace_until: Cell::new(None),
             launch_grace_logged: Cell::new(false),

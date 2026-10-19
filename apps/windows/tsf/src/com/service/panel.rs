@@ -9,8 +9,9 @@ use crate::com::log::log;
 impl TextService_Impl {
     /// 记下右键菜单的开关状态；面板开着而本地没在组句就进组句态。
     pub(super) fn apply_indicator_state(&self, state: IndicatorState) {
-        self.indicator_state.set(state);
-        if !state.symbol_panel || self.shared.composing() {
+        let symbol_panel = state.symbol_panel;
+        *self.indicator_state.borrow_mut() = state;
+        if !symbol_panel || self.shared.composing() {
             return;
         }
         let context = self

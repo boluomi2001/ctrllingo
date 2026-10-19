@@ -193,31 +193,42 @@ impl Router {
         let Ok(query) = self.engine.query() else {
             return;
         };
-        let Some(Composed::Candidates {
-            preedit,
-            cursor,
-            typed_keys,
-            layout,
-            ..
-        }) = self.composed.as_mut()
-        else {
-            return;
-        };
-        let cloud = layout.cloud().to_vec();
-        let mut rebuilt = CandidateLayout::new(
-            query.candidates.items.clone(),
-            self.config.page_size,
-            self.config.cloud_slots,
-        );
-        if !cloud.is_empty() {
-            if layout.cloud_first() {
-                rebuilt.set_cloud_first(cloud);
-            } else {
-                rebuilt.set_cloud(cloud);
+        let selected_before = self
+            .layout_candidate(self.highlight)
+            .map(|candidate| candidate.text);
+        {
+            let Some(Composed::Candidates {
+                preedit,
+                cursor,
+                typed_keys,
+                layout,
+                ..
+            }) = self.composed.as_mut()
+            else {
+                return;
+            };
+            let cloud = layout.cloud().to_vec();
+            let mut rebuilt = CandidateLayout::new(
+                query.candidates.items.clone(),
+                self.config.page_size,
+                self.config.cloud_slots,
+            );
+            if !cloud.is_empty() {
+                if layout.cloud_first() {
+                    rebuilt.set_cloud_first(cloud);
+                } else {
+                    rebuilt.set_cloud(cloud);
+                }
             }
+            *layout = rebuilt;
+            (*preedit, *cursor, *typed_keys) = marked_parts(&query);
         }
-        *layout = rebuilt;
-        (*preedit, *cursor, *typed_keys) = marked_parts(&query);
+        let selected_after = self
+            .layout_candidate(self.highlight)
+            .map(|candidate| candidate.text);
+        if selected_before != selected_after {
+            self.invalidate_sentence_translation();
+        }
         self.refresh_sentence_translation();
         let frame = self.self_drawn_frame();
         self.reconcile_candidates(&frame);

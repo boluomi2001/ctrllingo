@@ -3650,6 +3650,7 @@ version = "0.2.2-dev"
 dependencies = [
  "dotenvy",
  "embed-manifest",
+ "jiff",
  "qingjian-core",
  "qingjian-dictionary",
  "qingjian-learning",
@@ -3660,8 +3661,10 @@ dependencies = [
  "qingjian-render",
  "qingjian-translate",
  "qingjian-update",
+ "reqwest",
  "serde_json",
  "thiserror 2.0.21",
+ "tokio",
  "toml_edit",
  "tracing",
  "tracing-appender",

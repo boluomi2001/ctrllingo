@@ -114,6 +114,8 @@ CandidateLayout 保持 `set_cloud` 的首页末尾布局与本地首项；`set_c
 
 ## crates/qingjian-predict
 
+双语按需版增加独立的 `api-cost-ledger.json`：`ChatClient::send` 在每次实际尝试前后记录，按请求起始的北京时间日期归档。费用采用整数纳元、版本化 Flash 人民币价格及缓存细分，缺失明细显示区间或未知；文件锁和原子替换保护并发，损坏文件报错保留，不从旧累计 token 补算历史金额。账本不存原文或密钥。翻译失败及账号暂停返回空结果，通知界面结束等待。
+
 API 用量由 ChatClient 的单次发送入口计入：每次 HTTP 尝试分别累计，关思考参数兼容重试计两次；SDK 隐式重试关闭。CloudPredictor、CloudGlossFiller、ConnectionTest 的 `*_with_usage` 接口可指定共享统计文件，旧构造入口保持无统计行为。`api-usage.json` 只保存计数，文件锁合并跨线程／进程更新，原子写入；损坏文件保留并报告错误。缺失 usage 记未知，不估算 Token。
 每个有结果的请求还在同一把锁里往旁边的 `api-usage-hourly.tsv` 追加一行（日期、时、请求、失败、输入、输出、合计），超过 256 KB 整理成一个时段一行，统计页画按天、按小时的图用（`ApiUsageHours`）。
 
@@ -458,4 +460,6 @@ Unix socket 用共享长度前缀与 Frame（当前公共版本 9，与 `PROTOCO
 候选回报绑定连接代次、上下文和服务端帧序号，仅当前聚焦页的有效释义进入 `note_displayed`，不把生成帧算作已展示。
 `[general] preedit` 使用已有 `both` / `inline` / `window`；没有新增 Linux 自绘配置。详见 [linux-fcitx5.md](linux-fcitx5.md)。
 
-双语测试版的 Ctrl 单击由 TSF 松开回调发送 `KeyEvent::SWAP_TRANSLATION`（0x100，超出真实 Windows 虚拟键范围）；真实 Ctrl 按下原样放行，避免键盘状态更新时序导致重复调换。
+双语测试版的 Ctrl 单击由 TSF 松开回调发送 `KeyEvent::SWAP_TRANSLATION`（0x100，超出真实 Windows 虚拟键范围）；真实 Ctrl 按下原样放行，避免键盘状态更新时序导致重复调换。当前高亮有本地英文时直接调换，没有时才主动翻译；编辑或高亮变化清掉意图并返回中文，尚未发出的手动请求取消，已发结果按序号作废。按需功能开启时，`effective_predict_config` 在启动和热加载均抑制自动云入口。
+
+Windows `dispatch/cost` 在 Server 后台查询官方 `/user/balance`，实例内全部会话共享 60 秒节流。DLL 经 `IndicatorState` 取得纯文字摘要，不持有密钥或读账本；右键菜单提供费用快照、余额刷新和平台用量入口。原生费用窗口另起线程，避免阻塞候选窗口消息循环。

@@ -2,6 +2,8 @@
     [string]$Target = 'x86_64-pc-windows-msvc',
     [string]$Target32 = 'i686-pc-windows-msvc',
     [string]$BinaryDirectory,
+    [string]$OutputDirectory = 'target\bilingual-test',
+    [string]$PreviewDirectory = 'target\bilingual-preview',
     [switch]$SkipBuild
 )
 
@@ -25,7 +27,8 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $release32 'qingjian_tsf.dll'))) { throw 'Missing 32-bit TSF DLL.' }
     if (-not (Test-Path -LiteralPath 'data\generated\dict.qj')) { throw 'Fetch and verify the data.lock product bundle first.' }
 
-    $package = Join-Path $repo 'target\bilingual-test\QingjianBilingualTest'
+    $outputRoot = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) { $OutputDirectory } else { Join-Path $repo $OutputDirectory }
+    $package = Join-Path $outputRoot 'QingjianBilingualTest'
     if (Test-Path -LiteralPath $package) { throw "Output already exists: $package" }
     $app = Join-Path $package 'app'
     New-Item -ItemType Directory -Path $app -Force | Out-Null
@@ -37,16 +40,19 @@ try {
     foreach ($name in @('install-test.ps1', 'uninstall-test.ps1', 'install-test.cmd', 'uninstall-test.cmd', 'default-config.toml', '先看这里.md')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $package
     }
-    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'LICENSE' -Destination $package
-    if (Test-Path -LiteralPath 'target\bilingual-preview') {
-        Copy-Item -LiteralPath 'target\bilingual-preview' -Destination (Join-Path $package '预览') -Recurse
+    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'docs\notes\Ctrl按需翻译与费用验证记录.md', 'LICENSE' -Destination $package
+    if ($PreviewDirectory -and (Test-Path -LiteralPath $PreviewDirectory)) {
+        Copy-Item -LiteralPath $PreviewDirectory -Destination (Join-Path $package '预览') -Recurse
     }
     $info = @(
         'Personal Windows bilingual test fork; not an official release.',
-        "Upstream commit: $(git rev-parse HEAD)",
+        'Upstream base: c97ff2b61933d6fcd845ee4f4f470faf3ea83bf6',
+        "Fork source commit: $(git rev-parse HEAD)",
+        'Rollback tag: backup/bilingual-live-before-ondemand-20261019 (2c0ed70221b90fb7f2866fe96564ed4b5258acae)',
         "Targets: $Target / $Target32",
         "Rust: $(rustc --version)",
         "Rust flags: $env:RUSTFLAGS",
+        "Build helper optimization: $env:CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_OPT_LEVEL",
         "Built UTC: $([DateTime]::UtcNow.ToString('o'))",
         'Product data: data-v7; SHA256 e259f8bc2a5456c92484c5d4362ca56b3e46b3d2e1a0d463788091a039d79e40',
         'Source: source.zip includes the modified working-tree sources; dependencies are pinned in Cargo.lock.'

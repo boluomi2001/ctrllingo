@@ -152,3 +152,55 @@ fn dictionary_changes_do_not_retry_broken_config() {
     drop(router);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn ctrl_translation_shortcut_suppresses_legacy_predict_switches_only_when_enabled() {
+    let mut config = Config::default();
+    config.shortcut.ctrl_swap_translation = true;
+    config.predict.sentence_translation = true;
+    config.predict.enabled = true;
+    config.predict.automatic = true;
+    config.predict.vocabulary_translation = true;
+
+    let effective = super::effective_predict_config(&config);
+    assert!(!effective.enabled);
+    assert!(!effective.automatic);
+    assert!(!effective.vocabulary_translation);
+    assert!(effective.sentence_translation);
+    assert!(!RouterConfig::from(&config).cloud_enabled);
+
+    config.shortcut.ctrl_swap_translation = false;
+    assert_eq!(super::effective_predict_config(&config), config.predict);
+}
+
+#[test]
+fn changing_only_the_ctrl_shortcut_rebuilds_the_automatic_cloud_policy() {
+    let dir = std::env::temp_dir().join(format!("qingjian-reload-ctrl-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut config = Config::default();
+    config.shortcut.ctrl_swap_translation = false;
+    config.predict.sentence_translation = true;
+    config.predict.enabled = true;
+    config.predict.automatic = true;
+    config.predict.base_url = "http://127.0.0.1:9".to_owned();
+    config.predict.api_key = Some("local-test-key".to_owned());
+    let mut engine = Engine::new(Dictionary::default());
+    super::attach_cloud(&mut engine, &super::effective_predict_config(&config), None);
+    let mut router = Router::new(engine, RouterConfig::from(&config));
+    router.watch_config(
+        &config,
+        dir.join("config.toml"),
+        dir.clone(),
+        DataDirs::default(),
+    );
+    assert!(router.engine.prediction_policy().automatic);
+    config.shortcut.ctrl_swap_translation = true;
+    router.apply_config(&config);
+    assert!(!router.engine.prediction_policy().automatic);
+    assert!(!router.config.cloud_enabled);
+    config.shortcut.ctrl_swap_translation = false;
+    router.apply_config(&config);
+    assert!(router.engine.prediction_policy().automatic);
+    drop(router);
+    std::fs::remove_dir_all(dir).unwrap();
+}

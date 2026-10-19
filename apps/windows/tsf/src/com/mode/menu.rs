@@ -17,6 +17,8 @@ pub(crate) struct MenuState {
     pub(crate) full_width: bool,
     pub(crate) status_bar: bool,
     pub(crate) update_available: bool,
+    pub(crate) cost_summary: String,
+    pub(crate) balance_summary: String,
 }
 
 /// 点了哪一项：中 / 英 DLL 自己切，其余交给 Server。
@@ -33,6 +35,11 @@ const ID_SETTINGS: u32 = 5;
 const ID_DOWNLOAD: u32 = 6;
 const ID_SYMBOL_PANEL: u32 = 7;
 const ID_LEGACY_SETTINGS: u32 = 8;
+const ID_COST_SUMMARY: u32 = 9;
+const ID_BALANCE_SUMMARY: u32 = 10;
+const ID_USAGE_COSTS: u32 = 11;
+const ID_REFRESH_BALANCE: u32 = 12;
+const ID_BILLING: u32 = 13;
 
 /// 在 `point`（屏幕坐标）弹出菜单，阻塞到用户点了某项或点别处关掉。
 pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<MenuChoice> {
@@ -42,6 +49,8 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
     } else {
         MF_GRAYED
     };
+    let cost_summary = format!("本输入法估算：{}", summary_text(&state.cost_summary));
+    let balance_summary = format!("DeepSeek 余额：{}", summary_text(&state.balance_summary));
     let mut items = vec![
         Some((ID_CHINESE, "中文", checked(!state.english))),
         Some((ID_ENGLISH, "英文", english_flags)),
@@ -50,6 +59,12 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
         Some((ID_STATUS_BAR, "悬浮状态条", checked(state.status_bar))),
         None,
         Some((ID_SYMBOL_PANEL, "符号面板…", MENU_ITEM_FLAGS(0))),
+        None,
+        Some((ID_COST_SUMMARY, cost_summary.as_str(), MF_GRAYED)),
+        Some((ID_BALANCE_SUMMARY, balance_summary.as_str(), MF_GRAYED)),
+        Some((ID_USAGE_COSTS, "用量与费用…", MENU_ITEM_FLAGS(0))),
+        Some((ID_REFRESH_BALANCE, "刷新账户余额", MENU_ITEM_FLAGS(0))),
+        Some((ID_BILLING, "打开 DeepSeek 用量页面", MENU_ITEM_FLAGS(0))),
     ];
     if state.update_available {
         items.push(Some((
@@ -81,6 +96,17 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
         ID_LEGACY_SETTINGS => Some(MenuChoice::Server(IndicatorCommand::OpenLegacySettings)),
         ID_DOWNLOAD => Some(MenuChoice::Server(IndicatorCommand::OpenDownload)),
         ID_SYMBOL_PANEL => Some(MenuChoice::Server(IndicatorCommand::OpenSymbolPanel)),
+        ID_USAGE_COSTS => Some(MenuChoice::Server(IndicatorCommand::OpenUsageCosts)),
+        ID_REFRESH_BALANCE => Some(MenuChoice::Server(IndicatorCommand::RefreshBalance)),
+        ID_BILLING => Some(MenuChoice::Server(IndicatorCommand::OpenBilling)),
         _ => None,
+    }
+}
+
+fn summary_text(summary: &str) -> String {
+    if summary.is_empty() {
+        "暂无数据".to_owned()
+    } else {
+        summary.replace('&', "&&")
     }
 }

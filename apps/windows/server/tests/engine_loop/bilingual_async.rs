@@ -1,4 +1,4 @@
-//! 整句译文异步返回时的序号过滤、取消与私密边界。
+//! Ctrl 按需翻译的请求次数、当前候选绑定、取消与失败重试。
 
 use std::collections::VecDeque;
 
@@ -7,7 +7,7 @@ use qingjian_core::{
     CandidateKind, Prediction, PredictionKind, PredictionPolicy, PredictionRequest, Predictor,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct ControlledPredictor {
     submitted: Arc<Mutex<Vec<PredictionRequest>>>,
 
@@ -34,10 +34,7 @@ impl Predictor for ControlledPredictor {
 }
 
 fn controlled_router() -> (Router, ControlledPredictor) {
-    let predictor = ControlledPredictor {
-        submitted: Arc::new(Mutex::new(Vec::new())),
-        replies: Arc::new(Mutex::new(VecDeque::new())),
-    };
+    let predictor = ControlledPredictor::default();
     let mut router = router_with(RouterConfig {
         cloud_enabled: false,
         cloud_slots: 0,
@@ -50,26 +47,26 @@ fn controlled_router() -> (Router, ControlledPredictor) {
     (router, predictor)
 }
 
-fn last_translation(submitted: &Arc<Mutex<Vec<PredictionRequest>>>) -> PredictionRequest {
-    submitted
+fn translations(predictor: &ControlledPredictor) -> Vec<PredictionRequest> {
+    predictor
+        .submitted
         .lock()
         .unwrap()
         .iter()
-        .rev()
-        .find(|request| request.kind == PredictionKind::Translate)
-        .expect("当前整句应提交 Translate 请求")
-        .clone()
+        .filter(|request| request.kind == PredictionKind::Translate)
+        .cloned()
+        .collect()
 }
 
 fn queue_translation(
-    replies: &Arc<Mutex<VecDeque<Prediction>>>,
+    predictor: &ControlledPredictor,
     request: &PredictionRequest,
-    text: &str,
+    text: Option<&str>,
 ) {
-    replies.lock().unwrap().push_back(Prediction {
+    predictor.replies.lock().unwrap().push_back(Prediction {
         sequence: request.sequence,
         words: Vec::new(),
-        sentence: Some(text.to_owned()),
+        sentence: text.map(str::to_owned),
     });
 }
 
@@ -80,132 +77,229 @@ fn poll(router: &mut Router) -> (Frame, Option<String>) {
     }
 }
 
-fn translated_sentence(frame: &Frame, text: &str) {
-    assert!(
-        frame.candidates.items.iter().any(|candidate| {
-            candidate.kind == CandidateKind::Sentence && candidate.text == text
+fn toggle(router: &mut Router) -> Frame {
+    press(router, function_key(KeyEvent::SWAP_TRANSLATION)).2
+}
+
+#[test]
+fn typing_stopping_and_navigation_never_request_a_sentence_translation() {
+    let (mut router, predictor) = controlled_router();
+    type_letters(&mut router, "xiangkaifa");
+    press(&mut router, function_key(0x28));
+    press(&mut router, function_key(0x22));
+    assert!(translations(&predictor).is_empty());
+
+    press(&mut router, punct(' '));
+    assert!(translations(&predictor).is_empty());
+}
+
+#[test]
+fn ctrl_requests_only_the_highlighted_candidate_without_local_english() {
+    let (mut router, predictor) = controlled_router();
+    let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
+    let index = frame
+        .candidates
+        .items
+        .iter()
+        .enumerate()
+        .find(|(index, candidate)| *index > 0 && candidate.translation.is_none())
+        .map(|(index, _)| index)
+        .expect("应有非首位且没有本地译文的候选");
+    let mut selected_frame = frame.clone();
+    for _ in 0..index {
+        selected_frame = press(&mut router, function_key(0x28)).2;
+    }
+    let selected = selected_frame.candidates.items[selected_frame.highlight]
+        .text
+        .clone();
+    toggle(&mut router);
+
+    let requests = translations(&predictor);
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].text, selected);
+    assert!(requests[0].manual, "Ctrl 应走显式请求，跳过自动防抖");
+}
+
+#[test]
+fn local_english_translation_swaps_without_a_network_request() {
+    let (mut router, predictor) = controlled_router();
+    type_letters(&mut router, "nihao");
+    let english = toggle(&mut router);
+    assert!(candidate_texts(&english).contains(&"hello"));
+    assert!(translations(&predictor).is_empty());
+}
+
+#[test]
+fn changing_highlight_after_a_local_translation_returns_to_chinese_without_requesting() {
+    let (mut router, predictor) = controlled_router();
+    let (_, _, chinese) = type_letters(&mut router, "nihao");
+    assert!(chinese.candidates.items.len() > 1);
+    let english = toggle(&mut router);
+    assert!(candidate_texts(&english).contains(&"hello"));
+
+    let (_, _, after) = press(&mut router, function_key(0x28));
+    assert_eq!(after.highlight, 1);
+    assert_eq!(after.candidates.items[0].text, "你好");
+    assert!(translations(&predictor).is_empty());
+}
+
+#[test]
+fn ctrl_cancels_pending_intent_and_late_reply_cannot_change_chinese_view() {
+    let (mut router, predictor) = controlled_router();
+    type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    let request = translations(&predictor).pop().expect("Ctrl 应触发一次请求");
+
+    let chinese = toggle(&mut router);
+    assert!(!chinese.candidates.items.iter().any(|candidate| {
+        candidate.translation.as_ref().is_some_and(|translation| {
+            translation
+                .senses()
+                .first()
+                .is_some_and(|sense| sense.text == "Late sentence.")
         })
+    }));
+    queue_translation(&predictor, &request, Some("Late sentence."));
+    let (after, commit) = poll(&mut router);
+    assert_eq!(commit, None);
+    assert_eq!(preedit(&after), "xiang'kai'fa");
+    assert!(
+        !after
+            .candidates
+            .items
+            .iter()
+            .any(|candidate| candidate.text == "Late sentence.")
+    );
+    assert_eq!(translations(&predictor).len(), 1);
+}
+
+#[test]
+fn editing_cancels_the_translation_and_does_not_reissue_it() {
+    let (mut router, predictor) = controlled_router();
+    type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    let old = translations(&predictor).pop().unwrap();
+
+    press(&mut router, letter('z'));
+    queue_translation(&predictor, &old, Some("Stale sentence."));
+    let (after, _) = poll(&mut router);
+    assert!(preedit(&after).ends_with('z'));
+    assert!(
+        !after
+            .candidates
+            .items
+            .iter()
+            .any(|candidate| candidate.text == "Stale sentence.")
+    );
+    assert!(
+        translations(&predictor)
+            .iter()
+            .all(|request| request.sequence == old.sequence)
     );
 }
 
 #[test]
-fn newer_sentence_translation_wins_when_replies_arrive_out_of_order() {
+fn changing_highlight_returns_to_chinese_and_expires_the_old_translation() {
     let (mut router, predictor) = controlled_router();
-    type_letters(&mut router, "xiangkaifa");
-    let old = last_translation(&predictor.submitted);
+    let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
+    let index = frame
+        .candidates
+        .items
+        .iter()
+        .enumerate()
+        .find(|(index, candidate)| *index > 0 && candidate.translation.is_none())
+        .map(|(index, _)| index)
+        .expect("应有非首位且没有本地译文的候选");
+    for _ in 0..index {
+        press(&mut router, function_key(0x28));
+    }
+    toggle(&mut router);
+    let old = translations(&predictor).pop().unwrap();
 
-    press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
-    type_letters(&mut router, "zhe");
-    let current = last_translation(&predictor.submitted);
-    assert!(current.sequence > old.sequence);
-    assert_ne!(current.text, old.text);
-
-    queue_translation(&predictor.replies, &current, "New complete sentence.");
-    let (frame, commit) = poll(&mut router);
-    assert_eq!(commit, None);
-    translated_sentence(&frame, "New complete sentence.");
-
-    queue_translation(&predictor.replies, &old, "Stale sentence.");
-    let (frame, commit) = poll(&mut router);
-    assert_eq!(commit, None);
-    translated_sentence(&frame, "New complete sentence.");
-    assert!(!candidate_texts(&frame).contains(&"Stale sentence."));
-
-    let (_, commit, after) = press(&mut router, punct(' '));
-    assert_eq!(commit.as_deref(), Some("New complete sentence."));
-    assert!(after.is_empty());
+    let (_, _, chinese) = press(&mut router, function_key(0x28));
+    assert!(!chinese.candidates.items.iter().any(|candidate| {
+        candidate.text == old.text
+            && candidate
+                .translation
+                .as_ref()
+                .is_some_and(|translation| translation.senses()[0].text == "Stale translation.")
+    }));
+    queue_translation(&predictor, &old, Some("Stale translation."));
+    let (after, _) = poll(&mut router);
+    assert!(!after.candidates.items.iter().any(|candidate| {
+        candidate
+            .translation
+            .as_ref()
+            .is_some_and(|translation| translation.senses()[0].text == "Stale translation.")
+    }));
+    assert_eq!(translations(&predictor).len(), 1);
 }
 
 #[test]
-fn pending_translation_does_not_commit_or_clear_until_reply_arrives() {
-    let (mut router, predictor) = controlled_router();
-    type_letters(&mut router, "xiangkaifa");
-    let request = last_translation(&predictor.submitted);
-    press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
-
-    let (_, commit, pending) = press(&mut router, punct(' '));
-    assert_eq!(commit, None);
-    assert_eq!(preedit(&pending), "xiang'kai'fa");
-    assert!(!pending.is_empty());
-
-    queue_translation(&predictor.replies, &request, "Complete sentence.");
-    let (translated, commit) = poll(&mut router);
-    assert_eq!(commit, None);
-    translated_sentence(&translated, "Complete sentence.");
-    let (_, commit, after) = press(&mut router, punct(' '));
-    assert_eq!(commit.as_deref(), Some("Complete sentence."));
-    assert!(after.is_empty());
-}
-
-#[test]
-fn cancelled_translation_cannot_reopen_after_escape() {
-    let (mut router, predictor) = controlled_router();
-    type_letters(&mut router, "xiangkaifa");
-    let request = last_translation(&predictor.submitted);
-    let (_, commit, cleared) = press(&mut router, function_key(0x1B));
-    assert_eq!(commit, None);
-    assert!(cleared.is_empty());
-
-    queue_translation(&predictor.replies, &request, "Late sentence.");
-    let (after, commit) = poll(&mut router);
-    assert_eq!(commit, None);
-    assert!(after.is_empty());
-
-    let (_, _, chinese) = type_letters(&mut router, "nihao");
-    assert_eq!(chinese.candidates.items[0].text, "你好");
-}
-
-#[test]
-fn deleting_or_committing_the_buffer_resets_pending_translation() {
-    for commit_buffer in [false, true] {
+fn clear_and_focus_loss_discard_late_translation_results() {
+    for clear in [true, false] {
         let (mut router, predictor) = controlled_router();
         type_letters(&mut router, "xiangkaifa");
-        let request = last_translation(&predictor.submitted);
-        press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
-
-        if commit_buffer {
-            assert_eq!(
-                router.handle(ClientMessage::Commit { session: SESSION }),
-                Some(ServerMessage::Committed {
-                    session: SESSION,
-                    text: Some("xiangkaifa".to_owned()),
-                })
-            );
+        toggle(&mut router);
+        let old = translations(&predictor).pop().unwrap();
+        if clear {
+            press(&mut router, function_key(0x1B));
         } else {
-            let mut frame = Frame::default();
-            for _ in "xiangkaifa".chars() {
-                let (_, _, next) = press(&mut router, function_key(0x08));
-                frame = next;
-            }
-            assert!(frame.is_empty());
+            router.handle(ClientMessage::Commit { session: SESSION });
         }
 
-        queue_translation(&predictor.replies, &request, "Late sentence.");
+        queue_translation(&predictor, &old, Some("Stale translation."));
         let (after, commit) = poll(&mut router);
         assert_eq!(commit, None);
         assert!(after.is_empty());
-
-        let (_, _, chinese) = type_letters(&mut router, "nihao");
-        assert_eq!(chinese.candidates.items[0].text, "你好");
+        assert_eq!(translations(&predictor).len(), 1);
     }
 }
 
 #[test]
-fn private_composition_submits_no_sentence_translation() {
+fn space_waits_without_losing_pinyin_then_commits_the_returned_translation() {
     let (mut router, predictor) = controlled_router();
-    router.handle(ClientMessage::Privacy {
-        session: SESSION,
-        private: true,
-    });
     type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    let request = translations(&predictor).pop().unwrap();
 
-    assert!(router.is_private());
+    let (_, commit, pending) = press(&mut router, punct(' '));
+    assert_eq!(commit, None);
+    assert_eq!(preedit(&pending), "xiang'kai'fa");
+    queue_translation(&predictor, &request, Some("I want to develop it."));
+    let (translated, _) = poll(&mut router);
+    assert!(translated.candidates.items.iter().any(|candidate| {
+        candidate.kind == CandidateKind::Sentence
+            && candidate.text == "I want to develop it."
+            && candidate
+                .translation
+                .as_ref()
+                .is_some_and(|translation| translation.senses()[0].text == "想开发")
+    }));
+
+    let (_, commit, after) = press(&mut router, punct(' '));
+    assert_eq!(commit.as_deref(), Some("I want to develop it."));
+    assert!(after.is_empty());
+}
+
+#[test]
+fn failed_translation_ends_pending_state_and_ctrl_retries() {
+    let (mut router, predictor) = controlled_router();
+    type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    let first = translations(&predictor).pop().unwrap();
+    queue_translation(&predictor, &first, None);
+    let (failed, _) = poll(&mut router);
     assert!(
-        predictor
-            .submitted
-            .lock()
-            .unwrap()
-            .iter()
-            .all(|request| request.kind != PredictionKind::Translate)
+        failed
+            .notice
+            .as_deref()
+            .is_some_and(|notice| notice.contains("失败"))
     );
+
+    toggle(&mut router);
+    let requests = translations(&predictor);
+    assert_eq!(requests.len(), 2);
+    assert!(requests[1].sequence > first.sequence);
+    assert_eq!(requests[1].text, first.text);
 }

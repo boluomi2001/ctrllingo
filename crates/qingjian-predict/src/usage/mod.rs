@@ -1,5 +1,6 @@
 //! API 用量落盘：只累计请求与接口返回的 token 数，另按小时记一份给统计页画图；跨进程文件锁保护原子更新。
 
+mod cost_ledger;
 mod hour;
 mod hours;
 mod stats;
@@ -8,6 +9,7 @@ mod tokens;
 #[cfg(test)]
 mod tests;
 
+pub use cost_ledger::{AttemptContext, COST_LEDGER_FILE, CostLedger, CostLedgerSummary};
 pub use hour::ApiUsageHour;
 pub use hours::{API_USAGE_HOURLY_FILE, ApiUsageHours};
 pub use stats::ApiUsageStats;

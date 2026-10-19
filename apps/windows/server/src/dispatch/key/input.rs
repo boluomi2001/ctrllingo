@@ -22,20 +22,44 @@ impl Router {
             && !self.engine.raw_mode()
             && !self.panel_open()
             && self.engine.learning_language() == qingjian_core::Language::English
-            && let Some(crate::dispatch::composed::Composed::Candidates {
-                translation_first, ..
-            }) = self.composed.as_mut()
+            && self.composing()
+            && matches!(
+                &self.composed,
+                Some(crate::dispatch::composed::Composed::Candidates { .. })
+            )
         {
-            *translation_first = !*translation_first;
-            self.navigated = true;
-            self.notice = Some(
-                if *translation_first {
-                    "英文在左：空格输出高亮译文，Ctrl 切回中文"
-                } else {
-                    "中文在左：空格输出高亮中文，Ctrl 调换中英文"
+            if self.translation_first() {
+                if self.sentence_translation_failed() {
+                    self.request_highlighted_sentence_translation();
+                    self.notice = None;
+                    return Effect::Navigated;
                 }
-                .to_owned(),
-            );
+                self.cancel_pending_sentence_translation();
+                if let Some(crate::dispatch::composed::Composed::Candidates {
+                    translation_first,
+                    ..
+                }) = self.composed.as_mut()
+                {
+                    *translation_first = false;
+                }
+                self.notice = None;
+            } else {
+                if let Some(crate::dispatch::composed::Composed::Candidates {
+                    translation_first,
+                    ..
+                }) = self.composed.as_mut()
+                {
+                    *translation_first = true;
+                }
+                if self.highlighted_has_english_translation()
+                    || self.request_highlighted_sentence_translation()
+                {
+                    self.notice = None;
+                } else {
+                    self.notice = Some("当前候选没有可用英文译文".to_owned());
+                }
+            }
+            self.navigated = true;
             return Effect::Navigated;
         }
         if let Some(effect) = self.apply_panel_key(event) {

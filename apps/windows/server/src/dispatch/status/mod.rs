@@ -96,6 +96,18 @@ impl Router {
             IndicatorCommand::OpenLegacySettings => self.status.open_legacy_settings(),
             IndicatorCommand::OpenDownload => self.status.open_download(),
             IndicatorCommand::OpenSymbolPanel => self.open_panel_for(self.mode_session),
+            IndicatorCommand::RefreshBalance => {
+                if let Some(costs) = &self.costs {
+                    costs.refresh_balance();
+                }
+            }
+            IndicatorCommand::OpenUsageCosts => {
+                if let Some(costs) = &self.costs {
+                    costs.refresh_balance();
+                    self.status.open_usage_costs(costs.details());
+                }
+            }
+            IndicatorCommand::OpenBilling => self.status.open_billing(),
         }
     }
 

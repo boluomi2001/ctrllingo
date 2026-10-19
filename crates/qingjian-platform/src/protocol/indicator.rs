@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// 任务栏「中 / 英」图标右键菜单里要交给 Server 办的项（中 / 英切换在 DLL 侧自己做）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IndicatorCommand {
     /// 翻转当前模式的全角标点，与悬浮条上点「，。」一样。
     TogglePunctuation,
@@ -20,11 +20,20 @@ pub enum IndicatorCommand {
 
     /// 打开符号面板。
     OpenSymbolPanel,
+
+    /// 打开用量与费用详情。
+    OpenUsageCosts,
+
+    /// 请求 Server 在后台刷新账户余额。
+    RefreshBalance,
+
+    /// 打开 DeepSeek 用量页面。
+    OpenBilling,
 }
 
 /// 右键菜单打勾用的开关状态。DLL 不读配置文件（UWP 沙箱里读不到），由 Server 随
 /// [`super::ServerMessage::ModeSync`] 每一拍带下来。
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct IndicatorState {
     /// 中文模式下标点转全角（`[general] full_width_punctuation`）。
@@ -41,4 +50,10 @@ pub struct IndicatorState {
 
     /// 符号面板开着。从悬浮条打开时 DLL 靠这一拍得知，没在组句也把键交给 Server。
     pub symbol_panel: bool,
+
+    /// 本输入法估算的用量与费用摘要；空字符串表示暂不可用。
+    pub cost_summary: String,
+
+    /// DeepSeek 账户余额摘要；空字符串表示暂不可用。
+    pub balance_summary: String,
 }

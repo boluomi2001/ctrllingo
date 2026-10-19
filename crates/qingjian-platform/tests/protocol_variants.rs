@@ -103,6 +103,18 @@ fn client_messages() -> Vec<ClientMessage> {
             session,
             command: IndicatorCommand::OpenSymbolPanel,
         },
+        ClientMessage::Indicator {
+            session,
+            command: IndicatorCommand::OpenUsageCosts,
+        },
+        ClientMessage::Indicator {
+            session,
+            command: IndicatorCommand::RefreshBalance,
+        },
+        ClientMessage::Indicator {
+            session,
+            command: IndicatorCommand::OpenBilling,
+        },
         ClientMessage::CloseSession { session },
     ]
 }
@@ -218,6 +230,18 @@ fn an_old_dll_without_the_protocol_field_still_opens_a_session() {
         }),
         "老 DLL 的 OpenSession 应按 protocol=0 读入"
     );
+}
+
+#[test]
+fn an_old_indicator_state_without_cost_fields_still_parses() {
+    let mut json = serde_json::to_value(IndicatorState::default()).expect("IndicatorState 序列化");
+    let fields = json.as_object_mut().expect("IndicatorState 是 JSON 对象");
+    fields.remove("cost_summary");
+    fields.remove("balance_summary");
+
+    let state: IndicatorState = serde_json::from_value(json).expect("旧状态缺少新字段也应解码");
+    assert_eq!(state.cost_summary, "");
+    assert_eq!(state.balance_summary, "");
 }
 
 #[test]

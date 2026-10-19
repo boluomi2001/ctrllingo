@@ -36,7 +36,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
             ui,
             page,
             "Ctrl 调换中英文候选",
-            Some("中文组句时单击并松开 Ctrl，调换英文与中文主栏"),
+            Some("中文组句时单独松开 Ctrl；已有英文直接调换，开启按需翻译时才联网请求缺少的译文"),
             ("shortcut", "ctrl_swap_translation"),
             config.shortcut.ctrl_swap_translation,
             false,

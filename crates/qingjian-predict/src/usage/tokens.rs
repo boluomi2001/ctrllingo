@@ -10,6 +10,8 @@ pub(super) struct UsageTokens {
     pub total: u64,
 
     pub cached_input: u64,
+
+    pub cache_detail_known: bool,
 }
 
 impl UsageTokens {
@@ -29,12 +31,19 @@ impl UsageTokens {
                     .pointer("/prompt_tokens_details/cached_tokens")
                     .and_then(Value::as_u64)
             })
-            .unwrap_or(0);
+            .or_else(|| {
+                usage
+                    .get("prompt_cache_miss_tokens")
+                    .and_then(Value::as_u64)
+                    .and_then(|miss| input.checked_sub(miss))
+            });
+        let cache_detail_known = cached_input.is_some_and(|cached| cached <= input);
         Some(Self {
             input,
             output,
             total,
-            cached_input,
+            cached_input: cached_input.filter(|cached| *cached <= input).unwrap_or(0),
+            cache_detail_known,
         })
     }
 }

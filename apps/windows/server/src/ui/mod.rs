@@ -7,6 +7,7 @@
 
 mod candidates;
 mod command;
+mod cost;
 mod layered;
 mod monitor;
 mod painter;
@@ -138,6 +139,20 @@ impl StatusSink for UiHandle {
             .spawn();
         if let Err(error) = opened {
             tracing::warn!(%error, "打开下载页失败");
+        }
+    }
+
+    fn open_usage_costs(&self, text: String) {
+        cost::show(text);
+    }
+
+    fn open_billing(&self) {
+        let _ = unsafe { AllowSetForegroundWindow(ASFW_ANY) };
+        if let Err(error) = std::process::Command::new("explorer")
+            .arg("https://platform.deepseek.com/usage")
+            .spawn()
+        {
+            tracing::warn!(%error, "打开用量页面失败");
         }
     }
 }

@@ -47,16 +47,8 @@ impl Predictor for SentenceTranslator {
 }
 
 #[test]
-fn sentence_candidates_receive_an_async_translation_without_cloud_completion() {
+fn sentence_translation_is_requested_only_after_ctrl_and_attaches_to_the_candidate() {
     let submitted = Arc::new(Mutex::new(Vec::new()));
-    let mut local = router_with(RouterConfig {
-        cloud_slots: 0,
-        sentence_translation: false,
-        ..RouterConfig::default()
-    });
-    let (_, _, expected) = type_letters(&mut local, "xiangkaifa");
-    let expected_texts = candidate_texts(&expected);
-
     let mut router = router_with(RouterConfig {
         cloud_slots: 0,
         sentence_translation: true,
@@ -66,30 +58,36 @@ fn sentence_candidates_receive_an_async_translation_without_cloud_completion() {
         .engine_mut()
         .set_predictor(Box::new(SentenceTranslator::new(submitted.clone())));
 
-    let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
-    let sentence = frame
+    let (_, _, before) = type_letters(&mut router, "xiangkaifa");
+    let sentence = before
         .candidates
         .items
         .iter()
         .find(|candidate| candidate.kind == CandidateKind::Sentence)
         .expect("应有本地整句候选「想开发」");
     assert_eq!(sentence.text, "想开发");
-    assert_eq!(
-        sentence.translation.as_ref().unwrap().senses()[0].text,
-        "It seems not to work."
-    );
-    assert_eq!(candidate_texts(&frame), expected_texts);
-    assert_eq!(frame.candidates.items[0].text, "想开发");
-    let (_, commit, _) = press(&mut router, letter(' '));
-    assert_eq!(commit.as_deref(), Some("想开发"));
+    assert!(sentence.translation.is_none());
+    assert!(submitted.lock().unwrap().is_empty(), "组句期间不应自动请求");
+
+    let (_, _, frame) = press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
+    assert_eq!(preedit(&frame), "xiang'kai'fa");
+    assert!(frame.candidates.items.iter().any(|candidate| {
+        candidate.text == "It seems not to work."
+            && candidate
+                .translation
+                .as_ref()
+                .is_some_and(|translation| translation.senses()[0].text == "想开发")
+    }));
+    let (_, commit, after) = press(&mut router, letter(' '));
+    assert_eq!(commit.as_deref(), Some("It seems not to work."));
+    assert!(after.is_empty());
     let requests = submitted.lock().unwrap();
     let translations: Vec<&str> = requests
         .iter()
         .filter(|request| request.kind == PredictionKind::Translate)
         .map(|request| request.text.as_str())
         .collect();
-    assert_eq!(translations.last(), Some(&"想开发"));
-    assert!(translations.windows(2).all(|pair| pair[0] != pair[1]));
+    assert_eq!(translations, vec!["想开发"]);
     assert_eq!(frame.sentence, None, "关闭整句补全时不应显示补全文本");
 }
 

@@ -25,4 +25,5 @@ pub use gloss::CloudGlossFiller;
 
 pub use usage::{
     API_USAGE_FILE, API_USAGE_HOURLY_FILE, ApiUsageHour, ApiUsageHours, ApiUsageStats,
+    AttemptContext, COST_LEDGER_FILE, CostLedger, CostLedgerSummary,
 };

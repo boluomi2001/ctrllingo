@@ -134,6 +134,7 @@ impl Router {
         if self.translation.is_some() {
             return self.handle_translation_review(session, &event);
         }
+        let previous_highlight = self.highlight;
         if self.config.cloud_enabled
             && self.engine.composition().is_empty()
             && !self.panel_open()
@@ -158,6 +159,9 @@ impl Router {
                 (commit, KeyOutcome::Consumed)
             }
             Effect::Navigated => {
+                if self.highlight != previous_highlight {
+                    self.invalidate_sentence_translation();
+                }
                 self.refresh_sentence_translation();
                 (None, KeyOutcome::Consumed)
             }

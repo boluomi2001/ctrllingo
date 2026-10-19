@@ -204,17 +204,19 @@ fn candidate_without_translation_keeps_composition_until_ctrl_restores_chinese()
 fn ctrl_c_passes_through_without_toggling_translation() {
     let mut router = router();
     let (_, _, before) = type_letters(&mut router, "nihao");
-    let ctrl_c = letter_with(
-        'c',
-        KeyModifiers {
-            ctrl: true,
-            ..Default::default()
-        },
-    );
-    let (outcome, commit, after) = press(&mut router, ctrl_c);
-    assert_eq!((outcome, commit), (KeyOutcome::Passthrough, None));
-    assert_eq!(preedit(&after), preedit(&before));
-    assert_eq!(candidate_texts(&after), candidate_texts(&before));
+    for character in ['c', 'v'] {
+        let chord = letter_with(
+            character,
+            KeyModifiers {
+                ctrl: true,
+                ..Default::default()
+            },
+        );
+        let (outcome, commit, after) = press(&mut router, chord);
+        assert_eq!((outcome, commit), (KeyOutcome::Passthrough, None));
+        assert_eq!(preedit(&after), preedit(&before));
+        assert_eq!(candidate_texts(&after), candidate_texts(&before));
+    }
 }
 
 #[test]
@@ -226,19 +228,24 @@ fn translated_sentence_commits_its_full_english_text() {
     });
     router
         .engine_mut()
-        .set_predictor(Box::new(SentenceTranslator::new(submitted)));
-    let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
-    let sentence = frame
+        .set_predictor(Box::new(SentenceTranslator::new(submitted.clone())));
+    let (_, _, before) = type_letters(&mut router, "xiangkaifa");
+    let sentence = before
         .candidates
         .items
         .iter()
         .find(|candidate| candidate.text == "想开发")
         .expect("样例词库应有整句候选「想开发」");
-    assert_eq!(
-        sentence.translation.as_ref().unwrap().senses()[0].text,
-        "It seems not to work."
-    );
-    toggle(&mut router);
+    assert!(sentence.translation.is_none());
+    assert!(submitted.lock().unwrap().is_empty());
+    let (_, _, frame) = toggle(&mut router);
+    assert!(frame.candidates.items.iter().any(|candidate| {
+        candidate.text == "It seems not to work."
+            && candidate
+                .translation
+                .as_ref()
+                .is_some_and(|translation| translation.senses()[0].text == "想开发")
+    }));
     let (_, commit, after) = press(&mut router, punct(' '));
     assert_eq!(commit.as_deref(), Some("It seems not to work."));
     assert!(after.is_empty());

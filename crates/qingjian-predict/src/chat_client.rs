@@ -16,7 +16,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use crate::config::PredictConfig;
 use crate::error::PredictError;
 use crate::prompt::{self, Reply};
-use crate::usage::ApiUsageStats;
+use crate::usage::{ApiUsageStats, COST_LEDGER_FILE, CostLedger};
 
 /// 联想回复的 token 上限：几条短句足够，防止模型长篇大论。
 const MAX_TOKENS: u32 = 200;
@@ -40,6 +40,9 @@ pub struct ChatClient {
     /// 模型名。
     model: String,
 
+    /// 接口主机名，用于确定官方计价来源。
+    provider_host: String,
+
     /// 超时。
     timeout: Duration,
 
@@ -62,6 +65,7 @@ impl ChatClient {
             client: Client::with_config(openai)
                 .with_http_service(ReqwestService::new(http_client(&config.base_url))),
             model: config.model.clone(),
+            provider_host: host_of(&config.base_url).unwrap_or_default(),
             timeout: Duration::from_millis(config.timeout_ms),
             reasoning_effort: parse_reasoning_effort(&config.reasoning_effort),
             thinking_switch: ThinkingSwitch::for_url(&config.base_url),
@@ -134,6 +138,18 @@ impl ChatClient {
 
     /// 发一次请求，返回原始 JSON。
     async fn send(&self, body: &serde_json::Value) -> Result<serde_json::Value, PredictError> {
+        let ledger_attempt = self.usage_path.as_ref().and_then(|path| {
+            let ledger_path = path.with_file_name(COST_LEDGER_FILE);
+            match CostLedger::load(ledger_path)
+                .and_then(|ledger| ledger.record_attempt(&self.provider_host, &self.model))
+            {
+                Ok(context) => Some(context),
+                Err(error) => {
+                    tracing::warn!(%error, "API 费用账本写入失败");
+                    None
+                }
+            }
+        });
         if let Some(path) = &self.usage_path {
             ApiUsageStats::record_request(path);
         }
@@ -144,6 +160,15 @@ impl ChatClient {
                 .and_then(|result| result.map_err(PredictError::from));
         if let Some(path) = &self.usage_path {
             ApiUsageStats::record_response(path, response.as_ref().ok());
+            if let Some(context) = &ledger_attempt {
+                let ledger = CostLedger::load(path.with_file_name(COST_LEDGER_FILE));
+                match ledger
+                    .and_then(|ledger| ledger.record_result(context, response.as_ref().ok()))
+                {
+                    Ok(()) => {}
+                    Err(error) => tracing::warn!(%error, "API 费用账本结果保存失败"),
+                }
+            }
         }
         response
     }

@@ -16,23 +16,9 @@ use super::Router;
 impl Router {
     /// 缓冲变化后：按 Engine 状态重建 [`Composed`]，发一次云联想请求，归零高亮与整句补全。
     pub(super) fn recompose(&mut self) {
-        let (translation_first, previous_sentence_translation) = self
-            .composed
-            .take()
-            .and_then(|composed| match composed {
-                Composed::Candidates {
-                    sentence_translation,
-                    translation_first,
-                    ..
-                } => Some((translation_first, sentence_translation)),
-                Composed::Raw { .. } => None,
-            })
-            .unwrap_or_default();
-        let translation_first = translation_first
-            && self.config.ctrl_swap_translation
-            && self.engine.learning_language() == qingjian_core::Language::English
-            && !self.engine.english_mode()
-            && !self.engine.raw_mode();
+        self.cancel_pending_sentence_translation();
+        self.engine.cancel_sentence_translation();
+        self.composed.take();
         self.highlight = 0;
         self.navigated = false;
         self.grid = None;
@@ -58,14 +44,13 @@ impl Router {
                     let surrounding = self.surrounding_for_prediction();
                     self.engine.request_prediction(surrounding, layout.local());
                 }
-                let sentence_translation = previous_sentence_translation;
                 Composed::Candidates {
                     preedit,
                     cursor,
                     typed_keys,
                     layout,
-                    translation_first,
-                    sentence_translation,
+                    translation_first: false,
+                    sentence_translation: None,
                     manual_sequence: None,
                 }
             }
@@ -212,11 +197,7 @@ impl Router {
             return;
         };
         for candidate in &mut candidates.items {
-            if matches!(
-                candidate.kind,
-                CandidateKind::Sentence | CandidateKind::Generated
-            ) && candidate.text == annotation.text
-            {
+            if candidate.text == annotation.text {
                 candidate.translation = Some(translation.clone());
             }
         }

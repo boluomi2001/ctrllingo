@@ -7,6 +7,7 @@ mod candidates;
 mod code;
 mod composed;
 mod config;
+mod cost;
 mod key;
 mod message;
 mod mode;
@@ -32,10 +33,11 @@ pub use self::candidates::{CandidateSink, NoopSink, RenderSettings};
 pub use self::code::find_code_table;
 use self::composed::Composed;
 pub use self::config::RouterConfig;
+use self::cost::CostMonitor;
 use self::panel::PanelGrid;
 pub use self::panel::{PanelCell, PanelFrame, PanelMouse};
 use self::reload::ConfigReload;
-pub use self::reload::{DataDirs, attach_cloud};
+pub use self::reload::{DataDirs, attach_cloud, effective_predict_config};
 pub use self::rescore::find_model;
 use self::rescore::{ModelLoader, RescoreState};
 use self::session::SessionInfo;
@@ -144,6 +146,8 @@ pub struct Router {
 
     /// 重排的防抖 / 轮询进行态。
     rescore: RescoreState,
+
+    costs: Option<CostMonitor>,
 }
 
 impl Router {
@@ -185,6 +189,7 @@ impl Router {
             applied_model: LocalModelConfig::default(),
             surrounding_before: String::new(),
             rescore: RescoreState::default(),
+            costs: None,
         }
     }
 
@@ -211,12 +216,18 @@ impl Router {
 
     /// 任务栏图标右键菜单打勾用的开关状态，随 `ModeSync` 每一拍下发。
     pub(super) fn indicator_state(&self) -> IndicatorState {
+        let (cost_summary, balance_summary) = self.costs.as_ref().map_or_else(
+            || ("尚未启用统计".to_owned(), "尚未查询".to_owned()),
+            CostMonitor::summaries,
+        );
         IndicatorState {
             full_width_punctuation: self.config.full_width,
             english_full_width_punctuation: self.config.english_full_width,
             status_bar: self.config.status_enabled,
             update_available: self.update_available(),
             symbol_panel: self.panel_open(),
+            cost_summary,
+            balance_summary,
         }
     }
 

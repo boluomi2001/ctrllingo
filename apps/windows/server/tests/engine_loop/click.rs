@@ -49,6 +49,8 @@ fn clicking_a_sentence_translation_commits_it() {
         .set_predictor(Box::new(SentenceTranslator::new(submitted)));
     let (_, _, frame) = type_letters(&mut router, "xiangkaifa");
     let slot = slot_of(&frame, "想开发");
+    press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
+    press(&mut router, function_key(KeyEvent::SWAP_TRANSLATION));
     router.handle_click(HitTarget::Translation {
         candidate: slot as usize - 1,
         sense: 0,

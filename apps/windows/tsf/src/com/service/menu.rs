@@ -20,8 +20,10 @@ impl TextService_Impl {
         };
         // 先跟上全局模式，菜单上的勾与悬浮状态条一致（悬浮条上刚点过、还没到轮询那一拍时）
         self.sync_mode_from_server();
+        self.send_indicator(IndicatorCommand::RefreshBalance);
+        self.sync_mode_from_server();
         let english = self.mode_state.english();
-        let indicator = self.indicator_state.get();
+        let indicator = self.indicator_state.borrow().clone();
         let state = MenuState {
             english,
             english_enabled: self.mode_state.enabled(),
@@ -32,6 +34,8 @@ impl TextService_Impl {
             },
             status_bar: indicator.status_bar,
             update_available: indicator.update_available,
+            cost_summary: indicator.cost_summary,
+            balance_summary: indicator.balance_summary,
         };
         match menu::track(owner, point, &state) {
             Some(MenuChoice::Mode { english }) if english != self.mode_state.english() => {
@@ -49,10 +53,12 @@ impl TextService_Impl {
 
     fn send_indicator(&self, command: IndicatorCommand) {
         if matches!(
-            command,
+            &command,
             IndicatorCommand::OpenSettings
                 | IndicatorCommand::OpenLegacySettings
                 | IndicatorCommand::OpenDownload
+                | IndicatorCommand::OpenUsageCosts
+                | IndicatorCommand::OpenBilling
         ) {
             // 设置程序 / 浏览器由 Server 起；前台权在点菜单的这边，让出去它的窗口才能到前面
             let _ = unsafe { AllowSetForegroundWindow(ASFW_ANY) };
