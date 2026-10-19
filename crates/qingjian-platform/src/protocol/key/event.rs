@@ -16,6 +16,9 @@ pub struct KeyEvent {
 }
 
 impl KeyEvent {
+    /// Ctrl 单击完成的内部事件；真实 Windows 虚拟键码不超过 0xff。
+    pub const SWAP_TRANSLATION: u32 = 0x100;
+
     pub fn new(virtual_key: u32, character: Option<char>, modifiers: KeyModifiers) -> Self {
         Self {
             virtual_key,

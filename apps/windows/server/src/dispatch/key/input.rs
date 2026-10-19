@@ -11,6 +11,33 @@ impl Router {
     /// 功能键靠键码，其余靠字符。组句中修饰键 + 数字是快捷键；带 Ctrl / Alt / Win 而没配到快捷键的键归应用。
     /// 表达式模式里 Shift + 数字打的是 `^ * ( )`，不当快捷键。
     pub(crate) fn apply_key(&mut self, event: &KeyEvent) -> Effect {
+        if event.virtual_key == KeyEvent::SWAP_TRANSLATION
+            && event.modifiers.chord() == Default::default()
+            && self.config.ctrl_swap_translation
+            && !event.modifiers.english_mode
+            && !event.modifiers.caps
+            && !self.engine.english_mode()
+            && !self.engine.expression_mode()
+            && !self.engine.question_mode()
+            && !self.engine.raw_mode()
+            && !self.panel_open()
+            && self.engine.learning_language() == qingjian_core::Language::English
+            && let Some(crate::dispatch::composed::Composed::Candidates {
+                translation_first, ..
+            }) = self.composed.as_mut()
+        {
+            *translation_first = !*translation_first;
+            self.navigated = true;
+            self.notice = Some(
+                if *translation_first {
+                    "英文在左：空格输出高亮译文，Ctrl 切回中文"
+                } else {
+                    "中文在左：空格输出高亮中文，Ctrl 调换中英文"
+                }
+                .to_owned(),
+            );
+            return Effect::Navigated;
+        }
         if let Some(effect) = self.apply_panel_key(event) {
             return effect;
         }
@@ -43,6 +70,17 @@ impl Router {
         }
         if event.modifiers.has_command_key() {
             return Effect::Passthrough;
+        }
+        if self.translation_first()
+            && (event.character == Some(' ')
+                || (self.config.punct_commits
+                    && event.character.is_some_and(punctuation::converts)))
+            && self
+                .annotated_candidate_on_page(self.highlight % self.config.page_size + 1)
+                .is_none_or(|candidate| candidate.first_english_translation().is_none())
+        {
+            self.notice = Some("译文尚未就绪；请稍候，或按 Ctrl 切回中文".to_owned());
+            return Effect::Navigated;
         }
         let Some(c) = event.character.filter(|c| !c.is_control()) else {
             return self.apply_function_key(event);
@@ -445,6 +483,7 @@ impl Router {
     fn commit_highlighted(&mut self) -> String {
         match self.commit_index(self.highlight) {
             Some(text) => text,
+            None if self.translation_first() => String::new(),
             None => self.engine.take_raw(),
         }
     }

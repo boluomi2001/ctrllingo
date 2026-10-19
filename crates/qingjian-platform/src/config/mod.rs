@@ -322,6 +322,8 @@ system_text_replacements = true
 # enabled = true    # 是否启用；停用仍保留位置
 
 [shortcut]
+# Windows 双语测试：中文组句时单击 Ctrl 调换中英文候选；空格输出主栏内容
+ctrl_swap_translation = true
 # Windows：切换当前模式的全 / 半角标点；空串禁用，可设为 "ctrl+." 或其他修饰键加字母、数字、句号
 toggle_punctuation = ""
 # Windows：主翻页键之外同时启用的键对，可多选，如 ["[]", ",.", "-="]

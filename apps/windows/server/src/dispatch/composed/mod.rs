@@ -5,7 +5,7 @@ mod state;
 
 use qingjian_core::{
     Candidate, CandidateKind, CandidateLayout, CandidateList, Cell, CloudWord, GRID_ROWS, Grid,
-    Language, Query, Sense, SurroundingText, Translation,
+    Query, Sense, SurroundingText, Translation,
 };
 use qingjian_platform::protocol::{Frame, PROTOCOL_VERSION, PreeditKind, PreeditSegment};
 
@@ -16,14 +16,23 @@ use super::Router;
 impl Router {
     /// 缓冲变化后：按 Engine 状态重建 [`Composed`]，发一次云联想请求，归零高亮与整句补全。
     pub(super) fn recompose(&mut self) {
-        let previous_sentence_translation =
-            self.composed.take().and_then(|composed| match composed {
+        let (translation_first, previous_sentence_translation) = self
+            .composed
+            .take()
+            .and_then(|composed| match composed {
                 Composed::Candidates {
                     sentence_translation,
+                    translation_first,
                     ..
-                } => sentence_translation,
+                } => Some((translation_first, sentence_translation)),
                 Composed::Raw { .. } => None,
-            });
+            })
+            .unwrap_or_default();
+        let translation_first = translation_first
+            && self.config.ctrl_swap_translation
+            && self.engine.learning_language() == qingjian_core::Language::English
+            && !self.engine.english_mode()
+            && !self.engine.raw_mode();
         self.highlight = 0;
         self.navigated = false;
         self.grid = None;
@@ -49,36 +58,13 @@ impl Router {
                     let surrounding = self.surrounding_for_prediction();
                     self.engine.request_prediction(surrounding, layout.local());
                 }
-                let sentence_candidate = (self.config.sentence_translation
-                    && self.engine.learning_language() != Language::Chinese)
-                    .then(|| {
-                        layout
-                            .local()
-                            .iter()
-                            .find(|candidate| candidate.kind == CandidateKind::Sentence)
-                    })
-                    .flatten();
-                let sentence_translation = sentence_candidate.and_then(|candidate| {
-                    if let Some(annotation) = previous_sentence_translation
-                        && annotation.text == candidate.text
-                    {
-                        return Some(annotation);
-                    }
-                    self.engine.cancel_sentence_translation();
-                    self.engine
-                        .request_sentence_translation(&candidate.text)
-                        .map(|sequence| {
-                            SentenceTranslation::pending(candidate.text.clone(), sequence)
-                        })
-                });
-                if sentence_translation.is_none() {
-                    self.engine.cancel_sentence_translation();
-                }
+                let sentence_translation = previous_sentence_translation;
                 Composed::Candidates {
                     preedit,
                     cursor,
                     typed_keys,
                     layout,
+                    translation_first,
                     sentence_translation,
                     manual_sequence: None,
                 }
@@ -91,6 +77,7 @@ impl Router {
                 Composed::Raw { text, cursor }
             }
         });
+        self.refresh_sentence_translation();
         self.schedule_rescoring();
     }
 
@@ -129,17 +116,21 @@ impl Router {
                 ..
             }) = self.composed.as_mut()
             {
-                annotation.translation = prediction.sentence.map(|text| {
-                    Translation::new(
-                        self.engine.learning_language(),
-                        vec![Sense {
-                            part_of_speech: None,
-                            text,
-                            reading: None,
-                            fresh: false,
-                        }],
-                    )
-                });
+                annotation.finished = true;
+                annotation.translation = prediction
+                    .sentence
+                    .filter(|text| !text.trim().is_empty())
+                    .map(|text| {
+                        Translation::new(
+                            self.engine.learning_language(),
+                            vec![Sense {
+                                part_of_speech: None,
+                                text,
+                                reading: None,
+                                fresh: false,
+                            }],
+                        )
+                    });
             }
             return;
         }
@@ -221,7 +212,11 @@ impl Router {
             return;
         };
         for candidate in &mut candidates.items {
-            if candidate.kind == CandidateKind::Sentence && candidate.text == annotation.text {
+            if matches!(
+                candidate.kind,
+                CandidateKind::Sentence | CandidateKind::Generated
+            ) && candidate.text == annotation.text
+            {
                 candidate.translation = Some(translation.clone());
             }
         }
@@ -380,8 +375,33 @@ impl Router {
     }
 
     pub(super) fn commit_index(&mut self, index: usize) -> Option<String> {
-        let candidate = self.layout_candidate(index)?;
-        Some(self.engine.commit(&candidate))
+        let mut candidates = CandidateList {
+            items: vec![self.layout_candidate(index)?],
+        };
+        if !self.translation_first() {
+            return Some(self.engine.commit(&candidates.items[0]));
+        }
+        self.engine.annotate(&mut candidates);
+        self.annotate_sentence_translation(&mut candidates);
+        let text = candidates.items[0]
+            .first_english_translation()
+            .is_some()
+            .then(|| self.engine.commit_translation(&candidates.items[0], 0))
+            .flatten();
+        if text.is_none() {
+            self.notice = Some("译文尚未就绪；请稍候，或按 Ctrl 切回中文".to_owned());
+        }
+        text
+    }
+
+    pub(super) fn translation_first(&self) -> bool {
+        matches!(
+            self.composed,
+            Some(Composed::Candidates {
+                translation_first: true,
+                ..
+            })
+        )
     }
 
     /// 按当前状态生成一帧：翻译评审优先；没在组句给空帧；否则给高亮所在的那一页。
@@ -520,6 +540,11 @@ impl Router {
                 let mut candidates = CandidateList { items };
                 self.engine.annotate(&mut candidates);
                 self.annotate_sentence_translation(&mut candidates);
+                if self.translation_first() {
+                    for candidate in &mut candidates.items {
+                        *candidate = candidate.translation_view();
+                    }
+                }
                 Frame {
                     preedit: preedit.clone(),
                     preedit_mode: self.config.preedit,
@@ -539,7 +564,10 @@ impl Router {
                     aux_code_show: self.config.aux_code_show,
                     translation_pos: self.config.translation_pos,
                     sentence: self.sentence.clone(),
-                    notice: self.notice.clone(),
+                    notice: self
+                        .notice
+                        .clone()
+                        .or_else(|| self.sentence_translation_notice()),
                     symbol_panel: false,
                 }
             }

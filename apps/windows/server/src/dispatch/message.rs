@@ -157,7 +157,10 @@ impl Router {
                 self.recompose();
                 (commit, KeyOutcome::Consumed)
             }
-            Effect::Navigated => (None, KeyOutcome::Consumed),
+            Effect::Navigated => {
+                self.refresh_sentence_translation();
+                (None, KeyOutcome::Consumed)
+            }
             Effect::Passthrough => (None, KeyOutcome::Passthrough),
         };
         // 点击上屏的字还没等到轮询就来了键：接在这次结果前面，免得丢

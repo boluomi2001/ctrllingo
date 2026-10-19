@@ -80,7 +80,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let config = config.ok_or("找不到配置文件的位置")?;
     let settings = Settings::load(config)?;
-    let mut options = WindowOptions::new("青简设置", (900.0, 680.0));
+    let title = if cfg!(windows) {
+        "青简双语测试设置"
+    } else {
+        "青简设置"
+    };
+    let mut options = WindowOptions::new(title, (900.0, 680.0));
     options.min_size = (640.0, 420.0);
     run_window(settings, options)?;
     Ok(())

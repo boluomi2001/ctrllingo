@@ -59,7 +59,6 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
         )));
     }
     items.push(Some((ID_SETTINGS, "设置…", MENU_ITEM_FLAGS(0))));
-    items.push(Some((ID_LEGACY_SETTINGS, "旧版设置…", MENU_ITEM_FLAGS(0))));
     let menu = unsafe { CreatePopupMenu() }.ok()?;
     for item in items {
         let _ = match item {

@@ -1,0 +1,25 @@
+# 双语测试版独立配置；请在设置窗口的“云服务”页填写服务地址、模型与密钥。
+[general]
+learning_language = "en"
+layout = "vertical"
+page_size = 5
+input_log = false
+
+[shortcut]
+ctrl_swap_translation = true
+switch_mode = ["shift"]
+
+[predict]
+enabled = false
+sentence_translation = true
+vocabulary_translation = false
+debounce_ms = 350
+min_interval_ms = 600
+timeout_ms = 10000
+api_key_env = "QINGJIAN_BILINGUAL_TEST_API_KEY"
+
+[update]
+check = false
+
+[status_bar]
+enabled = true

@@ -372,6 +372,8 @@ Windows 的 `dispatch/mode` 管理可选的初始英文与按应用模式记忆�
 `service/mode.rs::set_english_mode` 一处拦住；状态条点击在 Server 侧（`dispatch/status/mod.rs`）按同一项拦，
 设置界面在 `settings/src/panel/pages/general.rs`。
 
+Windows 双语候选的 Ctrl 调换只改变展示副本，不参与学习；提交时仍用原候选消耗拼音。调换方向在同一段组合内保留，清空、取消或失焦后重置；选中整句或模型重排后会按更新后的文本重新请求翻译。
+
 TSF 原有数字 / OEM 标点 / 空格键码按当前布局用 `ToUnicodeEx` 解析（bit 2 避免改变键盘状态），
 仅接受单个非代理项 UTF-16 单元。字母、小键盘和 AltGr 处理不变，不保证组合音符输入。
 没在组句的数字在 `OnTestKeyDown` 先问 Server（`key_sink::preflight_digit`）：Passthrough 则 Test 不吃、键原生进应用
@@ -455,3 +457,5 @@ Windows 可选的 `[shortcut] toggle_punctuation` 经 `InputSettings` 下发，�
 Unix socket 用共享长度前缀与 Frame（当前公共版本 9，与 `PROTOCOL_VERSION` 同步，Fcitx5 插件里写死在 `qingjian.cpp` 的 OpenSession）；插件复用一条连接，每个上下文独立会话。Linux v3 扩展逐会话握手、确认 Sensitive/Password/Disable 后接受按下/释放、焦点和点击事实。
 候选回报绑定连接代次、上下文和服务端帧序号，仅当前聚焦页的有效释义进入 `note_displayed`，不把生成帧算作已展示。
 `[general] preedit` 使用已有 `both` / `inline` / `window`；没有新增 Linux 自绘配置。详见 [linux-fcitx5.md](linux-fcitx5.md)。
+
+双语测试版的 Ctrl 单击由 TSF 松开回调发送 `KeyEvent::SWAP_TRANSLATION`（0x100，超出真实 Windows 虚拟键范围）；真实 Ctrl 按下原样放行，避免键盘状态更新时序导致重复调换。

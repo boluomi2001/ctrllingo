@@ -11,6 +11,7 @@ mod list;
 mod part_of_speech;
 mod sense;
 mod translation;
+mod view;
 
 use serde::{Deserialize, Serialize};
 

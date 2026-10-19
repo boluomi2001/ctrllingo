@@ -218,6 +218,7 @@ impl Router {
         }
         *layout = rebuilt;
         (*preedit, *cursor, *typed_keys) = marked_parts(&query);
+        self.refresh_sentence_translation();
         let frame = self.self_drawn_frame();
         self.reconcile_candidates(&frame);
         // 前文在结果回来之前换过（Surrounding 晚到）：这次查询又记下了一批要打分的，再来一轮

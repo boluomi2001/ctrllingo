@@ -31,6 +31,17 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
     if Feature::SwitchKeys.here() {
         rows.push(switch_keys(ui, page)?);
     }
+    if Feature::CtrlSwapTranslation.here() {
+        rows.push(toggle_info(
+            ui,
+            page,
+            "Ctrl 调换中英文候选",
+            Some("中文组句时单击并松开 Ctrl，调换英文与中文主栏"),
+            ("shortcut", "ctrl_swap_translation"),
+            config.shortcut.ctrl_swap_translation,
+            false,
+        )?);
+    }
     if Feature::DefaultEnglish.here() {
         rows.push(toggle_info(
             ui,

@@ -23,6 +23,10 @@ impl Router {
             HitTarget::Candidate(offset) => self
                 .slot_index(offset + 1)
                 .and_then(|index| self.commit_index(index)),
+            HitTarget::Translation { candidate, .. } if self.translation_first() => self
+                .slot_index(candidate + 1)
+                .and_then(|index| self.layout_candidate(index))
+                .map(|candidate| self.engine.commit(&candidate)),
             HitTarget::Translation { candidate, sense } => self
                 .annotated_candidate_on_page(candidate + 1)
                 .and_then(|candidate| self.engine.commit_translation(&candidate, sense)),

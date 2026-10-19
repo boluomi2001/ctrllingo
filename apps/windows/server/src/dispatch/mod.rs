@@ -198,6 +198,8 @@ impl Router {
         InputSettings {
             toggle_punctuation: self.config.toggle_punctuation,
             switch_mode: self.config.switch_mode,
+            ctrl_swap_translation: self.config.ctrl_swap_translation
+                && self.engine.learning_language() == qingjian_core::Language::English,
             english_mode: self.config.english_mode,
             shift_letter_compose: self.config.shift_letter_compose,
             restore_mode: self.config.default_english || self.config.remember_mode_per_app,

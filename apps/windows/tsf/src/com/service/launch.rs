@@ -42,10 +42,10 @@ use crate::com::module_path;
 const LAUNCH_COOLDOWN: Duration = Duration::from_secs(5);
 
 /// 跨进程互斥体：多个应用的 DLL 同时发现 Server 不在时只起一个（第二个起来的抢不到管道会自己退出）。
-const LAUNCH_MUTEX: windows::core::PCWSTR = w!("Local\\QingjianServerLaunch");
+const LAUNCH_MUTEX: windows::core::PCWSTR = w!("Local\\QingjianBilingualTestServerLaunch");
 
 /// 安装 / 卸载程序运行期间持有的互斥体，名字与 `qingjian.iss` 的 `HoldInstallerMutex` 一致。
-const INSTALLER_MUTEX: windows::core::PCWSTR = w!("Global\\QingjianInstaller");
+const INSTALLER_MUTEX: windows::core::PCWSTR = w!("Global\\QingjianBilingualTestInstaller");
 
 /// 普通桌面应用的完整性级别 RID（UAC 未提升的用户进程）。低一档是 AppContainer / 浏览器沙箱，
 /// 高一档是管理员提升、SYSTEM 与安全桌面上的进程——那些里都不拉 Server。

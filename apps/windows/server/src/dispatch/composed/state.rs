@@ -21,6 +21,8 @@ pub(crate) enum Composed {
         /// 本地 + 云端槽位的候选布局。
         layout: CandidateLayout,
 
+        translation_first: bool,
+
         /// 首条本地整句候选的云端译文；未返回时为 `None`。
         sentence_translation: Option<SentenceTranslation>,
 

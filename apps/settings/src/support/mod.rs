@@ -16,6 +16,8 @@ pub enum Feature {
     AuxCode,
     /// 中英文切换键（含 Windows 系统的 Ctrl + Space）。
     SwitchKeys,
+    /// Windows 中文组句时调换英文与中文主栏。
+    CtrlSwapTranslation,
     DefaultEnglish,
     RememberModePerApp,
     /// 英文模式的全半角标点。
@@ -38,9 +40,10 @@ pub enum Feature {
 
 impl Feature {
     #[cfg(test)]
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 16] = [
         Self::AuxCode,
         Self::SwitchKeys,
+        Self::CtrlSwapTranslation,
         Self::DefaultEnglish,
         Self::RememberModePerApp,
         Self::EnglishPunctuation,
@@ -77,6 +80,7 @@ impl Feature {
             Self::AuxCode => [Todo, Yes, Todo],
             // macOS 用 Caps Lock，由系统决定；Linux 的切换键在 Fcitx5 的设置里
             Self::SwitchKeys => [No, Yes, No],
+            Self::CtrlSwapTranslation => [Todo, Yes, Todo],
             Self::DefaultEnglish => [Todo, Yes, Todo],
             Self::RememberModePerApp => [Todo, Yes, Todo],
             // macOS 英文模式一律半角
@@ -105,6 +109,7 @@ impl Feature {
         match self {
             Self::AuxCode => "辅码",
             Self::SwitchKeys => "中英文切换键",
+            Self::CtrlSwapTranslation => "Ctrl 调换中英文候选",
             Self::DefaultEnglish => "默认英文模式",
             Self::RememberModePerApp => "按应用记住中英模式",
             Self::EnglishPunctuation => "英文标点全半角",
@@ -131,6 +136,7 @@ impl Feature {
                 (PageId::Input, "导入码表"),
             ],
             Self::SwitchKeys => &[(PageId::Language, "切换键")],
+            Self::CtrlSwapTranslation => &[(PageId::Language, "Ctrl 调换中英文候选")],
             Self::DefaultEnglish => &[(PageId::Language, "默认英文模式")],
             Self::RememberModePerApp => &[(PageId::Language, "按应用记住中英模式")],
             Self::AutoSpace => &[(PageId::Language, "中文与英文、数字之间自动加空格")],

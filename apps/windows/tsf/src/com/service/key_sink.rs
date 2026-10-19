@@ -7,7 +7,9 @@
 use std::time::Instant;
 
 use windows::Win32::Foundation::{FALSE, LPARAM, WPARAM};
-use windows::Win32::UI::Input::KeyboardAndMouse::VK_CAPITAL;
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    VK_CAPITAL, VK_CONTROL, VK_LCONTROL, VK_RCONTROL,
+};
 use windows::Win32::UI::TextServices::{ITfContext, ITfKeyEventSink_Impl};
 use windows::core::{BOOL, GUID, Ref, Result};
 
@@ -56,13 +58,13 @@ impl ITfKeyEventSink_Impl for TextService_Impl {
         Ok(self.handle_key(pic, event).into())
     }
 
-    fn OnTestKeyUp(&self, _pic: Ref<ITfContext>, wparam: WPARAM, _lparam: LPARAM) -> Result<BOOL> {
-        self.note_key_up(wparam.0 as u32);
+    fn OnTestKeyUp(&self, pic: Ref<ITfContext>, wparam: WPARAM, _lparam: LPARAM) -> Result<BOOL> {
+        self.note_key_up(pic, wparam.0 as u32);
         Ok(FALSE)
     }
 
-    fn OnKeyUp(&self, _pic: Ref<ITfContext>, wparam: WPARAM, _lparam: LPARAM) -> Result<BOOL> {
-        self.note_key_up(wparam.0 as u32);
+    fn OnKeyUp(&self, pic: Ref<ITfContext>, wparam: WPARAM, _lparam: LPARAM) -> Result<BOOL> {
+        self.note_key_up(pic, wparam.0 as u32);
         Ok(FALSE)
     }
 
@@ -120,16 +122,50 @@ impl TextService_Impl {
     }
 
     fn note_key_down(&self, vk: u32, lparam: LPARAM) {
-        self.key_tap
-            .key_down(vk, lparam, self.mode_state.switch_keys());
+        self.key_tap.key_down(vk, lparam, self.tap_keys());
     }
 
-    fn note_key_up(&self, vk: u32) {
+    fn swap_tap_enabled(&self) -> bool {
+        self.shared.composing()
+            && !self.shared.translating()
+            && !self.mode_state.english()
+            && self
+                .input_settings
+                .get()
+                .is_some_and(|input| input.ctrl_swap_translation)
+    }
+
+    fn tap_keys(&self) -> qingjian_platform::SwitchKeys {
+        self.mode_state.switch_keys().with(
+            qingjian_platform::SwitchKey::Control,
+            self.swap_tap_enabled() || self.mode_state.switch_keys().control,
+        )
+    }
+
+    fn note_key_up(&self, pic: Ref<ITfContext>, vk: u32) {
         if vk == u32::from(VK_CAPITAL.0) {
             self.mode_state.notify();
         }
-        if self.key_tap.key_up(vk, self.mode_state.switch_keys()) {
-            self.set_english_mode(!self.mode_state.english());
+        if self.key_tap.key_up(vk, self.tap_keys()) {
+            let mut modifiers = self.key_event(vk).modifiers;
+            let control = [VK_CONTROL, VK_LCONTROL, VK_RCONTROL]
+                .iter()
+                .any(|key| u32::from(key.0) == vk);
+            // TSF 的测试回调可能早于线程键盘状态更新；抬起键本身不能当成仍按着的组合键。
+            if control {
+                modifiers.ctrl = false;
+            } else {
+                modifiers.shift = false;
+            }
+            if modifiers.chord() != Default::default() || modifiers.caps {
+                return;
+            }
+            if self.swap_tap_enabled() && control {
+                let event = KeyEvent::new(KeyEvent::SWAP_TRANSLATION, None, modifiers);
+                self.forward_key(pic, event);
+            } else {
+                self.set_english_mode(!self.mode_state.english());
+            }
         }
     }
 
@@ -142,6 +178,12 @@ impl TextService_Impl {
     /// Server 不转的回 Passthrough 再放行；`?` 是问字前缀。
     /// 没在组句的数字另走 [`Self::preflight_digit`]：Passthrough 时 Test 就不吃。
     fn would_eat(&self, event: &KeyEvent) -> bool {
+        if self.swap_tap_enabled()
+            && event.virtual_key == KeyEvent::SWAP_TRANSLATION
+            && !event.modifiers.has_command_key()
+        {
+            return true;
+        }
         let input = self.input_settings.get().unwrap_or_default();
         eats_key(
             event,

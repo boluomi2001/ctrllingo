@@ -78,6 +78,8 @@ pub struct RouterConfig {
     /// 中英切换键（`[shortcut] switch_mode`）：由 Server 经协议下发给 DLL，由它认键。
     pub switch_mode: SwitchKeys,
 
+    pub ctrl_swap_translation: bool,
+
     /// 候选高亮由哪对方向键移动（`[shortcut] highlight_keys`）。
     pub highlight_keys: HighlightKeys,
 
@@ -189,6 +191,7 @@ impl From<&Config> for RouterConfig {
             default_english: config.general.default_english,
             remember_mode_per_app: config.general.remember_mode_per_app,
             switch_mode: config.shortcut.switch_mode,
+            ctrl_swap_translation: config.shortcut.ctrl_swap_translation,
             highlight_keys: config.shortcut.highlight_keys,
             toggle_punctuation: config.shortcut.toggle_punctuation,
             full_width: config.general.full_width_punctuation,

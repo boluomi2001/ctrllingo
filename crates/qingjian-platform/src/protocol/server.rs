@@ -21,6 +21,10 @@ pub struct InputSettings {
     /// 中英切换键（`[shortcut] switch_mode`）。
     pub switch_mode: SwitchKeys,
 
+    /// 旧 Server 未声明时不启用，避免向旧 Server 发送单击 Ctrl。
+    #[serde(default)]
+    pub ctrl_swap_translation: bool,
+
     /// 内置英文模式总开关（`[general] english_mode`）。
     pub english_mode: bool,
 
@@ -53,6 +57,7 @@ impl Default for InputSettings {
         Self {
             toggle_punctuation: None,
             switch_mode: SwitchKeys::default(),
+            ctrl_swap_translation: false,
             english_mode: true,
             shift_letter_compose: false,
             restore_mode: false,
