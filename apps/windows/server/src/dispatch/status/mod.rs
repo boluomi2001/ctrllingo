@@ -77,6 +77,24 @@ impl Router {
                 self.persist("status_bar", "x", i64::from(x));
                 self.persist("status_bar", "y", i64::from(y));
             }
+            StatusEvent::OpenUsageCosts(x, y) => {
+                self.open_cost_panel((x, y));
+                return;
+            }
+            StatusEvent::PollUsageCosts { total } => {
+                if let Some(costs) = &self.costs {
+                    self.status
+                        .update_usage_costs(costs.panel(total, self.engine.learning_language()));
+                }
+                return;
+            }
+            StatusEvent::SelectLearningLanguage(language) => {
+                if language != qingjian_core::Language::Chinese {
+                    self.invalidate_sentence_translation();
+                    self.persist("general", "learning_language", language.code());
+                }
+                return;
+            }
         }
         self.reconcile_status();
     }
@@ -102,13 +120,26 @@ impl Router {
                 }
             }
             IndicatorCommand::OpenUsageCosts => {
-                if let Some(costs) = &self.costs {
-                    costs.refresh_balance();
-                    self.status.open_usage_costs(costs.details());
-                }
+                self.open_cost_panel((0, 0));
             }
+            IndicatorCommand::OpenUsagePanel { x, y } => self.open_cost_panel((x, y)),
             IndicatorCommand::OpenBilling => self.status.open_billing(),
         }
+    }
+
+    fn open_cost_panel(&self, point: (i32, i32)) {
+        let view = if let Some(costs) = &self.costs {
+            costs.refresh_balance();
+            costs.panel(false, self.engine.learning_language())
+        } else {
+            super::CostPanelView {
+                tokens: "—".to_owned(),
+                amount: "暂无记录".to_owned(),
+                balance: "费用统计未配置".to_owned(),
+                ..Default::default()
+            }
+        };
+        self.status.open_usage_costs(view, point);
     }
 
     /// 写回配置文件一个键；没有配置路径（测试）就只改内存。

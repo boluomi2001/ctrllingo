@@ -15,7 +15,9 @@ pub trait StatusSink: Send {
     /// 用浏览器打开下载页（右键菜单的「有新版本」）。
     fn open_download(&self) {}
 
-    fn open_usage_costs(&self, _text: String) {}
+    fn open_usage_costs(&self, _view: crate::dispatch::CostPanelView, _point: (i32, i32)) {}
+
+    fn update_usage_costs(&self, _view: crate::dispatch::CostPanelView) {}
 
     fn open_billing(&self) {}
 }

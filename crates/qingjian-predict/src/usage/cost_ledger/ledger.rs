@@ -33,15 +33,30 @@ impl CostLedger {
 
     /// 发送一次真实请求前调用。重试必须为每次 HTTP 尝试分别调用。
     pub fn record_attempt(&self, provider_host: &str, model: &str) -> io::Result<AttemptContext> {
+        self.record_attempt_for(provider_host, model, "other")
+    }
+
+    /// 按用途记录一次真实请求；未知用途归入 `other`。
+    pub fn record_attempt_for(
+        &self,
+        provider_host: &str,
+        model: &str,
+        purpose: &str,
+    ) -> io::Result<AttemptContext> {
         let (day, started_unix_secs) = pricing::request_clock();
         let id = uuid::Uuid::new_v4().to_string();
         let is_priced = supported_model(provider_host, model);
+        let purpose = match purpose {
+            "translate" | "compose" => purpose,
+            _ => "other",
+        };
         let entry = LedgerEntry {
             id: id.clone(),
             day: day.clone(),
             started_unix_secs,
             provider_host: provider_host.to_ascii_lowercase(),
             model: model.to_owned(),
+            purpose: purpose.to_owned(),
             price_version: is_priced.then(|| PRICE_VERSION.to_owned()),
             state: AttemptState::Pending,
             input_tokens: None,
@@ -100,69 +115,93 @@ impl CostLedger {
     /// 汇总传入的北京时间日期，格式为 `YYYY-MM-DD`。
     pub fn summary(&self, day: &str) -> io::Result<CostLedgerSummary> {
         let data = read_data(&self.path)?;
-        let attempts: Vec<_> = data
-            .attempts
-            .iter()
-            .filter(|attempt| attempt.day == day)
-            .collect();
-        let mut summary = CostLedgerSummary {
-            day: day.to_owned(),
-            price_versions: attempts
-                .iter()
-                .filter_map(|attempt| attempt.price_version.clone())
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect(),
-            requests: attempts.len() as u64,
-            input_tokens: 0,
-            output_tokens: 0,
-            cached_input_tokens: 0,
-            unknown: 0,
-            pending: 0,
-            lower_nano_cny: 0,
-            upper_nano_cny: Some(0),
-            since_unix_secs: data.since_unix_secs,
-        };
-        for attempt in attempts {
-            if attempt.state == AttemptState::Pending {
-                summary.pending += 1;
-                summary.upper_nano_cny = None;
-                continue;
-            }
-            if let Some(input) = attempt.input_tokens {
-                summary.input_tokens = summary.input_tokens.saturating_add(input);
-            }
-            if let Some(output) = attempt.output_tokens {
-                summary.output_tokens = summary.output_tokens.saturating_add(output);
-            }
-            if let Some(cached) = attempt.cached_input_tokens {
-                summary.cached_input_tokens = summary.cached_input_tokens.saturating_add(cached);
-            }
-            if !attempt.cache_detail_known {
-                summary.unknown += 1;
-            }
-            match (attempt.lower_nano_cny, attempt.upper_nano_cny) {
-                (Some(lower), Some(upper)) => {
-                    summary.lower_nano_cny = summary.lower_nano_cny.saturating_add(lower);
-                    if let Some(total) = &mut summary.upper_nano_cny {
-                        *total = total.saturating_add(upper);
-                    }
-                }
-                _ => {
-                    if attempt.cache_detail_known {
-                        summary.unknown += 1;
-                    }
-                    summary.upper_nano_cny = None;
-                }
-            }
-        }
-        Ok(summary)
+        summarize(
+            data.attempts.iter().filter(|attempt| attempt.day == day),
+            day,
+            data.since_unix_secs,
+        )
+    }
+
+    /// 汇总账本中的所有日期。
+    pub fn total(&self) -> io::Result<CostLedgerSummary> {
+        let data = read_data(&self.path)?;
+        summarize(data.attempts.iter(), "全部", data.since_unix_secs)
     }
 
     /// 今日按北京时间汇总。
     pub fn today(&self) -> io::Result<CostLedgerSummary> {
         self.summary(&pricing::today())
     }
+}
+
+fn summarize<'a>(
+    attempts: impl Iterator<Item = &'a LedgerEntry>,
+    day: &str,
+    since_unix_secs: u64,
+) -> io::Result<CostLedgerSummary> {
+    let attempts: Vec<_> = attempts.collect();
+    let mut summary = CostLedgerSummary {
+        day: day.to_owned(),
+        price_versions: attempts
+            .iter()
+            .filter_map(|attempt| attempt.price_version.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
+        requests: attempts.len() as u64,
+        translation_requests: attempts.iter().filter(|a| a.purpose == "translate").count() as u64,
+        prediction_requests: attempts.iter().filter(|a| a.purpose == "compose").count() as u64,
+        other_requests: attempts
+            .iter()
+            .filter(|a| a.purpose != "translate" && a.purpose != "compose")
+            .count() as u64,
+        input_tokens: 0,
+        output_tokens: 0,
+        cached_input_tokens: 0,
+        unknown: 0,
+        unknown_token_requests: attempts
+            .iter()
+            .filter(|attempt| attempt.input_tokens.is_none() || attempt.output_tokens.is_none())
+            .count() as u64,
+        pending: 0,
+        lower_nano_cny: 0,
+        upper_nano_cny: Some(0),
+        since_unix_secs,
+    };
+    for attempt in attempts {
+        if attempt.state == AttemptState::Pending {
+            summary.pending += 1;
+            summary.upper_nano_cny = None;
+            continue;
+        }
+        if let Some(input) = attempt.input_tokens {
+            summary.input_tokens = summary.input_tokens.saturating_add(input);
+        }
+        if let Some(output) = attempt.output_tokens {
+            summary.output_tokens = summary.output_tokens.saturating_add(output);
+        }
+        if let Some(cached) = attempt.cached_input_tokens {
+            summary.cached_input_tokens = summary.cached_input_tokens.saturating_add(cached);
+        }
+        if !attempt.cache_detail_known {
+            summary.unknown += 1;
+        }
+        match (attempt.lower_nano_cny, attempt.upper_nano_cny) {
+            (Some(lower), Some(upper)) => {
+                summary.lower_nano_cny = summary.lower_nano_cny.saturating_add(lower);
+                if let Some(total) = &mut summary.upper_nano_cny {
+                    *total = total.saturating_add(upper);
+                }
+            }
+            _ => {
+                if attempt.cache_detail_known {
+                    summary.unknown += 1;
+                }
+                summary.upper_nano_cny = None;
+            }
+        }
+    }
+    Ok(summary)
 }
 
 fn with_data(

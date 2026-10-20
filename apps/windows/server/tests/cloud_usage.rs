@@ -114,7 +114,7 @@ fn prediction_gloss_fill_and_reload_keep_one_usage_file() {
     let learned = Arc::new(AtomicUsize::new(0));
     let mut engine = Engine::new(Dictionary::parse("开发\tkai fa\t100\n").unwrap())
         .with_translator(Box::new(MissingEnglish(learned.clone())));
-    attach_cloud(&mut engine, &config, Some(path.clone()));
+    attach_cloud(&mut engine, &config, true, Some(path.clone()));
     engine.set_input("kaifa");
     assert!(engine.request_prediction(None, &[]).is_some());
     wait_for(|| engine.poll_prediction().is_some());
@@ -124,7 +124,7 @@ fn prediction_gloss_fill_and_reload_keep_one_usage_file() {
     assert_eq!(learned.load(Ordering::Relaxed), 1);
     assert_eq!(ApiUsageStats::load(&path).unwrap().requests, 2);
 
-    attach_cloud(&mut engine, &config, Some(path.clone()));
+    attach_cloud(&mut engine, &config, true, Some(path.clone()));
     engine.set_input("kaifa");
     assert!(engine.request_prediction(None, &[]).is_some());
     wait_for(|| engine.poll_prediction().is_some());

@@ -182,6 +182,42 @@ fn same(a: &toml::Value, b: &toml::Value) -> bool {
 }
 
 #[test]
+#[cfg(windows)]
+fn cloud_switches_remain_clickable_during_ctrl_translation() {
+    let dir = std::env::temp_dir().join(format!("qingjian-cloud-switches-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("config.toml");
+    std::fs::write(
+        &path,
+        "[shortcut]\nctrl_swap_translation = true\n[predict]\nsentence_translation = true\nenabled = false\nautomatic = false\n",
+    )
+    .unwrap();
+    let mut settings = Settings::load(path.clone()).unwrap();
+    settings.page = PageId::Cloud;
+    let mut text = TextPainter::new(FontLibrary::system("zh-CN").unwrap());
+    settings.setup(&mut text);
+    let mut harness = Harness {
+        settings,
+        interaction: Interaction::new(),
+        text,
+        path: path.clone(),
+        problems: BTreeMap::new(),
+        checked: BTreeMap::new(),
+    };
+    for key in ["enabled", "automatic"] {
+        harness.frame();
+        let messages = harness.click(bamboo_slip::Key::ROOT.child(("predict", key)));
+        assert!(!messages.is_empty(), "云服务开关 {key} 不可点击");
+        harness.apply(messages);
+    }
+    let config = Config::load(&path).unwrap();
+    assert!(config.predict.enabled && config.predict.automatic);
+    assert!(config.shortcut.ctrl_swap_translation && config.predict.sentence_translation);
+    assert!(harness.problems.is_empty());
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn every_key_the_settings_app_writes_is_read_by_the_ime() {
     let dir = std::env::temp_dir().join(format!("qingjian-settings-keys-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

@@ -2,6 +2,7 @@
     [string]$Target = 'x86_64-pc-windows-msvc',
     [string]$Target32 = 'i686-pc-windows-msvc',
     [string]$BinaryDirectory,
+    [string]$BinaryDirectory32,
     [string]$OutputDirectory = 'target\bilingual-test',
     [string]$PreviewDirectory = 'target\bilingual-preview',
     [switch]$SkipBuild
@@ -19,7 +20,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw '32-bit build failed.' }
     }
     $release = if ($BinaryDirectory) { (Resolve-Path $BinaryDirectory).Path } else { Join-Path $repo "target\$Target\release" }
-    $release32 = Join-Path $repo "target\$Target32\release"
+    $release32 = if ($BinaryDirectory32) { (Resolve-Path $BinaryDirectory32).Path } else { Join-Path $repo "target\$Target32\release" }
     $required = @('qingjian-server.exe', 'qingjian_tsf.dll', 'qingjian-settings.exe')
     foreach ($name in $required) {
         if (-not (Test-Path -LiteralPath (Join-Path $release $name))) { throw "Missing binary: $name" }
@@ -40,7 +41,7 @@ try {
     foreach ($name in @('install-test.ps1', 'uninstall-test.ps1', 'install-test.cmd', 'uninstall-test.cmd', 'default-config.toml', '先看这里.md')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $package
     }
-    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'docs\notes\Ctrl按需翻译与费用验证记录.md', 'LICENSE' -Destination $package
+    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'docs\notes\Ctrl按需翻译与费用验证记录.md', 'docs\notes\第三版费用面板与多语言验证记录.md', 'LICENSE' -Destination $package
     if ($PreviewDirectory -and (Test-Path -LiteralPath $PreviewDirectory)) {
         Copy-Item -LiteralPath $PreviewDirectory -Destination (Join-Path $package '预览') -Recurse
     }
@@ -48,7 +49,8 @@ try {
         'Personal Windows bilingual test fork; not an official release.',
         'Upstream base: c97ff2b61933d6fcd845ee4f4f470faf3ea83bf6',
         "Fork source commit: $(git rev-parse HEAD)",
-        'Rollback tag: backup/bilingual-live-before-ondemand-20261019 (2c0ed70221b90fb7f2866fe96564ed4b5258acae)',
+        'Rollback tag: test/ctrl-cost-20261020 (b1207bada488b01ec23c96cbbd16c69fc39bdc6b)',
+        'Edition: third bilingual test; independent cloud controls and multilingual Ctrl translation.',
         "Targets: $Target / $Target32",
         "Rust: $(rustc --version)",
         "Rust flags: $env:RUSTFLAGS",

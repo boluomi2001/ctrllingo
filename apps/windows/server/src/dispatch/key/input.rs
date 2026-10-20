@@ -21,7 +21,7 @@ impl Router {
             && !self.engine.question_mode()
             && !self.engine.raw_mode()
             && !self.panel_open()
-            && self.engine.learning_language() == qingjian_core::Language::English
+            && self.engine.learning_language() != qingjian_core::Language::Chinese
             && self.composing()
             && matches!(
                 &self.composed,
@@ -51,12 +51,12 @@ impl Router {
                 {
                     *translation_first = true;
                 }
-                if self.highlighted_has_english_translation()
+                if self.highlighted_has_translation()
                     || self.request_highlighted_sentence_translation()
                 {
                     self.notice = None;
                 } else {
-                    self.notice = Some("当前候选没有可用英文译文".to_owned());
+                    self.notice = Some("当前候选没有可用译文".to_owned());
                 }
             }
             self.navigated = true;
@@ -101,7 +101,11 @@ impl Router {
                     && event.character.is_some_and(punctuation::converts)))
             && self
                 .annotated_candidate_on_page(self.highlight % self.config.page_size + 1)
-                .is_none_or(|candidate| candidate.first_english_translation().is_none())
+                .is_none_or(|candidate| {
+                    candidate
+                        .first_translation(self.engine.learning_language())
+                        .is_none()
+                })
         {
             self.notice = Some("译文尚未就绪；请稍候，或按 Ctrl 切回中文".to_owned());
             return Effect::Navigated;

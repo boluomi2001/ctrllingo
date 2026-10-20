@@ -8,6 +8,8 @@ use crate::dispatch::Router;
 pub(crate) struct SentenceTranslation {
     pub(crate) text: String,
 
+    pub(crate) language: Language,
+
     pub(crate) sequence: u64,
 
     pub(crate) translation: Option<Translation>,
@@ -16,9 +18,10 @@ pub(crate) struct SentenceTranslation {
 }
 
 impl SentenceTranslation {
-    pub(crate) fn pending(text: String, sequence: u64) -> Self {
+    pub(crate) fn pending(text: String, language: Language, sequence: u64) -> Self {
         Self {
             text,
+            language,
             sequence,
             translation: None,
             finished: false,
@@ -45,7 +48,7 @@ impl Router {
         let current = match &self.composed {
             Some(Composed::Candidates { layout, .. }) => layout
                 .candidate(self.highlight)
-                .map(|candidate| candidate.text.clone()),
+                .map(|candidate| (candidate.text.clone(), self.engine.learning_language())),
             _ => None,
         };
         let Some(Composed::Candidates {
@@ -56,10 +59,11 @@ impl Router {
         else {
             return;
         };
-        if sentence_translation
-            .as_ref()
-            .is_none_or(|annotation| current.as_deref() == Some(annotation.text.as_str()))
-        {
+        if sentence_translation.as_ref().is_none_or(|annotation| {
+            current.as_ref().is_some_and(|(text, language)| {
+                text == &annotation.text && *language == annotation.language
+            })
+        }) {
             return;
         }
         self.engine.cancel_sentence_translation();
@@ -67,7 +71,7 @@ impl Router {
         *translation_first = false;
     }
 
-    pub(in crate::dispatch) fn highlighted_has_english_translation(&self) -> bool {
+    pub(in crate::dispatch) fn highlighted_has_translation(&self) -> bool {
         let Some(Composed::Candidates { layout, .. }) = &self.composed else {
             return false;
         };
@@ -79,12 +83,14 @@ impl Router {
         };
         self.engine.annotate(&mut candidates);
         self.annotate_sentence_translation(&mut candidates);
-        candidates.items[0].first_english_translation().is_some()
+        candidates.items[0]
+            .first_translation(self.engine.learning_language())
+            .is_some()
     }
 
     pub(in crate::dispatch) fn request_highlighted_sentence_translation(&mut self) -> bool {
-        if !self.config.sentence_translation || self.engine.learning_language() != Language::English
-        {
+        let language = self.engine.learning_language();
+        if !self.config.sentence_translation || language == Language::Chinese {
             return false;
         }
         let Some(Composed::Candidates { layout, .. }) = &self.composed else {
@@ -94,7 +100,8 @@ impl Router {
             return false;
         };
         let text = candidate.text.clone();
-        let Some(sequence) = self.engine.request_translation(&text) else {
+        self.engine.cancel_composition_prediction();
+        let Some(sequence) = self.engine.request_candidate_translation(&text) else {
             return false;
         };
         if let Some(Composed::Candidates {
@@ -102,7 +109,7 @@ impl Router {
             ..
         }) = self.composed.as_mut()
         {
-            *sentence_translation = Some(SentenceTranslation::pending(text, sequence));
+            *sentence_translation = Some(SentenceTranslation::pending(text, language, sequence));
         }
         true
     }
@@ -126,7 +133,7 @@ impl Router {
             }) if !annotation.finished
         );
         if pending {
-            self.engine.cancel_prediction();
+            self.engine.cancel_sentence_translation();
             if let Some(Composed::Candidates {
                 sentence_translation,
                 ..

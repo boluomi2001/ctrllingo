@@ -3,21 +3,32 @@
 use super::{Candidate, Language, Sense, Translation};
 
 impl Candidate {
-    pub fn first_english_translation(&self) -> Option<&str> {
+    pub fn first_translation(&self, language: Language) -> Option<&str> {
+        if language == Language::Chinese {
+            return None;
+        }
         self.translation
             .as_ref()
-            .filter(|translation| translation.language == Language::English)
+            .filter(|translation| translation.language == language)
             .and_then(|translation| translation.senses().first())
             .map(|sense| sense.text.as_str())
             .filter(|text| !text.trim().is_empty())
     }
 
+    pub fn first_english_translation(&self) -> Option<&str> {
+        self.first_translation(Language::English)
+    }
+
     pub fn translation_view(&self) -> Self {
+        self.translation_view_for(Language::English)
+    }
+
+    pub fn translation_view_for(&self, language: Language) -> Self {
         if self.text.is_empty() {
             return self.clone();
         }
         let text = self
-            .first_english_translation()
+            .first_translation(language)
             .map_or_else(|| "暂无译文".to_owned(), str::to_owned);
         Self {
             text,
@@ -73,13 +84,31 @@ mod tests {
     }
 
     #[test]
-    fn a_chinese_or_empty_annotation_cannot_be_committed_as_english() {
-        for source in [
-            candidate(Language::Chinese, "电脑"),
-            candidate(Language::English, " "),
+    fn translations_require_a_matching_non_chinese_language_and_nonempty_text() {
+        for language in [
+            Language::English,
+            Language::Japanese,
+            Language::Spanish,
+            Language::Vietnamese,
+            Language::German,
         ] {
-            assert_eq!(source.first_english_translation(), None);
-            assert_eq!(source.translation_view().text, "暂无译文");
+            let source = candidate(language, "translated");
+            assert_eq!(source.first_translation(language), Some("translated"));
+            assert_eq!(source.translation_view_for(language).text, "translated");
+            assert_eq!(source.first_translation(Language::Chinese), None);
+            assert_eq!(source.first_translation(other_language(language)), None);
+            assert_eq!(candidate(language, "  ").first_translation(language), None);
+        }
+        let chinese = candidate(Language::Chinese, "电脑");
+        assert_eq!(chinese.first_translation(Language::Chinese), None);
+        assert_eq!(chinese.first_translation(Language::English), None);
+    }
+
+    fn other_language(language: Language) -> Language {
+        if language == Language::English {
+            Language::Japanese
+        } else {
+            Language::English
         }
     }
 }

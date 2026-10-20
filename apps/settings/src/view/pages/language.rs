@@ -35,8 +35,8 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
         rows.push(toggle_info(
             ui,
             page,
-            "Ctrl 调换中英文候选",
-            Some("中文组句时单独松开 Ctrl；已有英文直接调换，开启按需翻译时才联网请求缺少的译文"),
+            "Ctrl 调换中文与目标语言候选",
+            Some("中文组句时单独松开 Ctrl；已有目标语言译文直接调换，开启按需翻译时才联网请求缺少的译文"),
             ("shortcut", "ctrl_swap_translation"),
             config.shortcut.ctrl_swap_translation,
             false,

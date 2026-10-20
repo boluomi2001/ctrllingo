@@ -16,6 +16,28 @@ fn poll(router: &mut Router) -> (Frame, Option<String>) {
 }
 
 #[test]
+fn ctrl_and_space_use_each_supported_learning_language() {
+    for (language, expected) in [
+        (Language::English, "hello"),
+        (Language::Japanese, "こんにちは"),
+        (Language::Spanish, "hola"),
+        (Language::Vietnamese, "xin chào"),
+        (Language::German, "hallo"),
+    ] {
+        let mut router = router_for_language(RouterConfig::default(), language);
+        type_letters(&mut router, "nihao");
+        let translated = toggle(&mut router).2;
+        assert!(
+            candidate_texts(&translated).contains(&expected),
+            "{language:?}"
+        );
+        let (_, commit, after) = press(&mut router, punct(' '));
+        assert_eq!(commit.as_deref(), Some(expected), "{language:?}");
+        assert!(after.is_empty());
+    }
+}
+
+#[test]
 fn ctrl_swaps_candidate_columns_and_back_without_changing_pinyin() {
     let mut router = router();
     let (_, _, chinese) = type_letters(&mut router, "nihao");

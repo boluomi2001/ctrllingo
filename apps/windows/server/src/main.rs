@@ -2,6 +2,8 @@
 //! release 编成 GUI 子系统（登录自启静默跑，日志走文件）；debug 保留控制台看 stderr。
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+mod migration;
+
 use std::path::{Path, PathBuf};
 
 use qingjian_core::{Engine, Language};
@@ -166,8 +168,16 @@ fn main() {
 
     // 日志级别取自配置，所以先写模板、读配置，再装日志。
     let template = write_config_template();
-    let config = load_config();
+    let migration = config_path().map(|path| migration::cloud_controls(&path));
+    let mut config = load_config();
+    if migration.as_ref().is_some_and(Result::is_err) {
+        config.predict.enabled = false;
+        config.predict.automatic = false;
+    }
     let _log_guard = init_logging(&config);
+    if let Some(Err(error)) = migration {
+        tracing::warn!(%error, "云联想偏好迁移失败，本次启动保持关闭");
+    }
     match template {
         Some(Ok(true)) => tracing::info!("已写出配置模板"),
         Some(Err(error)) => tracing::warn!(%error, "写配置模板失败"),
@@ -238,6 +248,7 @@ fn main() {
     dispatch::attach_cloud(
         &mut engine,
         &dispatch::effective_predict_config(&config),
+        !(config.shortcut.ctrl_swap_translation && config.predict.sentence_translation),
         usage_path,
     );
     let router_config = RouterConfig::from(&config);

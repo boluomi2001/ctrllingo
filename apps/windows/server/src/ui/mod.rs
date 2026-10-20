@@ -13,6 +13,7 @@ mod monitor;
 mod painter;
 mod panel;
 mod status;
+mod tray;
 mod window_class;
 
 use std::cell::RefCell;
@@ -38,12 +39,14 @@ use qingjian_render::Mode;
 pub use self::candidates::CandidateClicks;
 use self::candidates::CandidateWindow;
 use self::command::UiCommand;
+use self::cost::CostWindow;
 use self::painter::{Painter, SharedPainter};
 pub use self::panel::PanelEvents;
 use self::panel::PanelWindow;
 use self::status::StatusBar;
+use self::tray::TrayIcon;
 use crate::dispatch::{
-    CandidateSink, PanelFrame, RenderSettings, StatusEvent, StatusSink, StatusView,
+    CandidateSink, CostPanelView, PanelFrame, RenderSettings, StatusEvent, StatusSink, StatusView,
 };
 
 /// 状态条上的操作（点格子 / 拖动结束）回给 Router 的回调，UI 线程上调。
@@ -142,8 +145,12 @@ impl StatusSink for UiHandle {
         }
     }
 
-    fn open_usage_costs(&self, text: String) {
-        cost::show(text);
+    fn open_usage_costs(&self, view: CostPanelView, point: (i32, i32)) {
+        self.post(UiCommand::CostsShow(Box::new((view, point))));
+    }
+
+    fn update_usage_costs(&self, view: CostPanelView) {
+        self.post(UiCommand::CostsUpdate(Box::new(view)));
     }
 
     fn open_billing(&self) {
@@ -207,13 +214,20 @@ fn run(
             None
         }
     };
-    let status = match StatusBar::new(on_status, painter.clone()) {
+    let events: Rc<dyn Fn(StatusEvent)> = Rc::new(on_status);
+    let status = match StatusBar::new(events.clone(), painter.clone()) {
         Ok(status) => Some(status),
         Err(error) => {
             tracing::error!(%error, "建悬浮状态条失败，将不显示状态条");
             None
         }
     };
+    let costs = CostWindow::new(events.clone())
+        .map_err(|error| tracing::error!(%error, "建费用卡片失败"))
+        .ok();
+    let _tray = TrayIcon::new(events)
+        .map_err(|error| tracing::error!(%error, "建青简托盘图标失败"))
+        .ok();
     if ready.send(Some(thread_id)).is_err() {
         return;
     }
@@ -230,7 +244,14 @@ fn run(
         if msg.message == WM_WAKE {
             // 一次唤醒排空整个队列，保住 Hide→Show 的先后。
             while let Ok(command) = commands.try_recv() {
-                apply(&window, panel.as_ref(), status.as_ref(), &painter, command);
+                apply(
+                    &window,
+                    panel.as_ref(),
+                    status.as_ref(),
+                    costs.as_ref(),
+                    &painter,
+                    command,
+                );
             }
             continue;
         }
@@ -245,6 +266,7 @@ fn apply(
     window: &CandidateWindow,
     panel: Option<&PanelWindow>,
     status: Option<&StatusBar>,
+    costs: Option<&CostWindow>,
     painter: &SharedPainter,
     command: UiCommand,
 ) {
@@ -277,6 +299,17 @@ fn apply(
             }
         }
         UiCommand::Configure(settings) => Painter::configure(painter, &settings),
+        UiCommand::CostsShow(payload) => {
+            if let Some(costs) = costs {
+                let (view, point) = *payload;
+                costs.show(view, point);
+            }
+        }
+        UiCommand::CostsUpdate(view) => {
+            if let Some(costs) = costs {
+                costs.update(*view);
+            }
+        }
     }
 }
 

@@ -10,7 +10,7 @@ use async_openai::types::chat::{
     ChatCompletionRequestUserMessage, CreateChatCompletionRequestArgs,
     CreateChatCompletionResponse, FinishReason, ReasoningEffort, ResponseFormat,
 };
-use qingjian_core::PredictionRequest;
+use qingjian_core::{PredictionKind, PredictionRequest};
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::config::PredictConfig;
@@ -81,8 +81,12 @@ impl ChatClient {
     pub async fn complete(&self, request: &PredictionRequest) -> Result<Reply, PredictError> {
         let user = prompt::user_prompt(request);
         tracing::debug!(sequence = request.sequence, %user, "联想请求");
+        let purpose = match request.kind {
+            PredictionKind::Translate => "translate",
+            PredictionKind::Compose | PredictionKind::Question => "compose",
+        };
         let content = self
-            .chat(prompt::system_prompt(request), &user, MAX_TOKENS)
+            .chat_for(prompt::system_prompt(request), &user, MAX_TOKENS, purpose)
             .await?;
         Ok(prompt::parse_reply(&content, request))
     }
@@ -94,14 +98,24 @@ impl ChatClient {
         user: &str,
         max_tokens: u32,
     ) -> Result<String, PredictError> {
+        self.chat_for(system, user, max_tokens, "other").await
+    }
+
+    async fn chat_for(
+        &self,
+        system: &str,
+        user: &str,
+        max_tokens: u32,
+        purpose: &str,
+    ) -> Result<String, PredictError> {
         let mut body = self.request_body(system, user, max_tokens)?;
-        let raw = match self.send(&body).await {
+        let raw = match self.send(&body, purpose).await {
             Ok(raw) => raw,
             // 「始终思考」的模型（如 GLM-5 系列）会拒绝关思考参数；去掉它按模型默认重试一次
             Err(PredictError::Api(error)) if rejects_thinking_control(&error) => {
                 tracing::info!(model = %self.model, error = %error, "模型拒绝关思考，去掉该参数重试");
                 strip_thinking_params(&mut body);
-                self.send(&body).await?
+                self.send(&body, purpose).await?
             }
             Err(error) => return Err(error),
         };
@@ -137,12 +151,16 @@ impl ChatClient {
     }
 
     /// 发一次请求，返回原始 JSON。
-    async fn send(&self, body: &serde_json::Value) -> Result<serde_json::Value, PredictError> {
+    async fn send(
+        &self,
+        body: &serde_json::Value,
+        purpose: &str,
+    ) -> Result<serde_json::Value, PredictError> {
         let ledger_attempt = self.usage_path.as_ref().and_then(|path| {
             let ledger_path = path.with_file_name(COST_LEDGER_FILE);
-            match CostLedger::load(ledger_path)
-                .and_then(|ledger| ledger.record_attempt(&self.provider_host, &self.model))
-            {
+            match CostLedger::load(ledger_path).and_then(|ledger| {
+                ledger.record_attempt_for(&self.provider_host, &self.model, purpose)
+            }) {
                 Ok(context) => Some(context),
                 Err(error) => {
                     tracing::warn!(%error, "API 费用账本写入失败");

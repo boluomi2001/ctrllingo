@@ -9,7 +9,7 @@ use windows::Win32::UI::WindowsAndMessaging::GetWindowRect;
 
 pub(super) use self::action::StatusAction;
 use crate::dispatch::StatusEvent;
-use crate::ui::StatusEvents;
+use std::rc::Rc;
 
 /// 窗口过程也要读写的摆放状态，经 `PLACEMENTS` 按 HWND 查到。
 pub(super) struct Placement {
@@ -29,11 +29,11 @@ pub(super) struct Placement {
     pub(super) fullscreen_hidden: Cell<bool>,
 
     /// 点格 / 拖动结束回给 Router。
-    events: StatusEvents,
+    events: Rc<dyn Fn(StatusEvent)>,
 }
 
 impl Placement {
-    pub(super) fn new(hwnd: HWND, margin: i32, events: StatusEvents) -> Self {
+    pub(super) fn new(hwnd: HWND, margin: i32, events: Rc<dyn Fn(StatusEvent)>) -> Self {
         Self {
             hwnd,
             margin: Cell::new(margin),

@@ -4,7 +4,6 @@
 
 mod button;
 mod icon;
-pub(crate) mod menu;
 pub(crate) mod sink;
 mod state;
 

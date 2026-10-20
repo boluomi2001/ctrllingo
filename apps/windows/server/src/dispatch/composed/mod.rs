@@ -68,6 +68,7 @@ impl Router {
 
     /// 拉一次云联想结果：云端词并进候选布局，整句补全记下；翻译评审时结果是译文。
     pub(super) fn poll_prediction(&mut self) {
+        self.refresh_sentence_translation();
         if !self.engine.prediction_enabled() {
             return;
         }
@@ -94,6 +95,7 @@ impl Router {
                 sentence_translation: Some(annotation),
                 ..
             }) if annotation.sequence == prediction.sequence
+                && annotation.language == self.engine.learning_language()
         );
         if is_sentence_translation {
             if let Some(Composed::Candidates {
@@ -107,7 +109,7 @@ impl Router {
                     .filter(|text| !text.trim().is_empty())
                     .map(|text| {
                         Translation::new(
-                            self.engine.learning_language(),
+                            annotation.language,
                             vec![Sense {
                                 part_of_speech: None,
                                 text,
@@ -117,6 +119,9 @@ impl Router {
                         )
                     });
             }
+            return;
+        }
+        if self.translation_first() {
             return;
         }
         if let Some(Composed::Candidates {
@@ -157,7 +162,7 @@ impl Router {
 
     /// DLL 送来新的光标前文后重发一次云联想：作废在飞的空上下文请求，让云端拿得到 before。
     pub(super) fn refresh_prediction(&mut self) {
-        if !self.config.cloud_enabled {
+        if !self.config.cloud_enabled || self.translation_first() {
             return;
         }
         let Some(Composed::Candidates {
@@ -196,6 +201,9 @@ impl Router {
         let Some(translation) = &annotation.translation else {
             return;
         };
+        if annotation.language != self.engine.learning_language() {
+            return;
+        }
         for candidate in &mut candidates.items {
             if candidate.text == annotation.text {
                 candidate.translation = Some(translation.clone());
@@ -207,6 +215,9 @@ impl Router {
     pub(super) fn request_manual_prediction(&mut self) -> bool {
         if !self.config.cloud_enabled {
             return false;
+        }
+        if self.translation_first() {
+            self.invalidate_sentence_translation();
         }
         let surrounding = self.surrounding_for_prediction();
         let Some(Composed::Candidates {
@@ -365,7 +376,7 @@ impl Router {
         self.engine.annotate(&mut candidates);
         self.annotate_sentence_translation(&mut candidates);
         let text = candidates.items[0]
-            .first_english_translation()
+            .first_translation(self.engine.learning_language())
             .is_some()
             .then(|| self.engine.commit_translation(&candidates.items[0], 0))
             .flatten();
@@ -523,7 +534,8 @@ impl Router {
                 self.annotate_sentence_translation(&mut candidates);
                 if self.translation_first() {
                     for candidate in &mut candidates.items {
-                        *candidate = candidate.translation_view();
+                        *candidate =
+                            candidate.translation_view_for(self.engine.learning_language());
                     }
                 }
                 Frame {

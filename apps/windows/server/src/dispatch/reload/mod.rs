@@ -35,15 +35,18 @@ fn mtime(path: &Path) -> Option<SystemTime> {
 pub fn effective_predict_config(config: &Config) -> PredictConfig {
     let mut predict = config.predict.clone();
     if config.shortcut.ctrl_swap_translation && predict.sentence_translation {
-        predict.enabled = false;
-        predict.automatic = false;
         predict.vocabulary_translation = false;
     }
     predict
 }
 
 /// 按 `[predict]` 接云联想、整句候选翻译与释义兜底；关着或缺密钥就退回本地实现。启动与热加载共用。
-pub fn attach_cloud(engine: &mut Engine, predict: &PredictConfig, usage_path: Option<PathBuf>) {
+pub fn attach_cloud(
+    engine: &mut Engine,
+    predict: &PredictConfig,
+    allow_gloss_fallback: bool,
+    usage_path: Option<PathBuf>,
+) {
     if !predict.enabled && !predict.sentence_translation {
         tracing::info!("云联想未开启（[predict] enabled = false）");
         engine.set_predictor(Box::new(NoPredictor));
@@ -60,7 +63,7 @@ pub fn attach_cloud(engine: &mut Engine, predict: &PredictConfig, usage_path: Op
             engine.set_predictor(Box::new(NoPredictor));
         }
     }
-    if predict.enabled {
+    if predict.enabled && allow_gloss_fallback {
         match CloudGlossFiller::new_with_usage(predict, usage_path) {
             Ok(filler) => engine.set_gloss_filler(Box::new(filler)),
             Err(error) => {
@@ -224,6 +227,12 @@ impl Router {
 
     /// 应用新配置。学习语言变了换释义表（词汇等级表启动时已全装，不用换）。
     fn apply_config(&mut self, config: &Config) {
+        if assembly::learning_language(config).unwrap_or(Language::Chinese)
+            != self.engine.learning_language()
+            || !(config.shortcut.ctrl_swap_translation && config.predict.sentence_translation)
+        {
+            self.invalidate_sentence_translation();
+        }
         let previous_translation_mode =
             self.config.ctrl_swap_translation && self.config.sentence_translation;
         self.engine.set_fuzzy(config.fuzzy);
@@ -292,6 +301,7 @@ impl Router {
             attach_cloud(
                 &mut self.engine,
                 &effective_predict_config(config),
+                !(config.shortcut.ctrl_swap_translation && config.predict.sentence_translation),
                 usage_path,
             );
             self.costs = reload

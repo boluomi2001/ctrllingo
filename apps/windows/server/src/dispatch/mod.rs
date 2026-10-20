@@ -34,6 +34,7 @@ pub use self::code::find_code_table;
 use self::composed::Composed;
 pub use self::config::RouterConfig;
 use self::cost::CostMonitor;
+pub use self::cost::CostPanelView;
 use self::panel::PanelGrid;
 pub use self::panel::{PanelCell, PanelFrame, PanelMouse};
 use self::reload::ConfigReload;
@@ -204,7 +205,7 @@ impl Router {
             toggle_punctuation: self.config.toggle_punctuation,
             switch_mode: self.config.switch_mode,
             ctrl_swap_translation: self.config.ctrl_swap_translation
-                && self.engine.learning_language() == qingjian_core::Language::English,
+                && self.engine.learning_language() != qingjian_core::Language::Chinese,
             english_mode: self.config.english_mode,
             shift_letter_compose: self.config.shift_letter_compose,
             restore_mode: self.config.default_english || self.config.remember_mode_per_app,

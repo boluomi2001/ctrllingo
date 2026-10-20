@@ -4,7 +4,8 @@ use std::collections::VecDeque;
 
 use crate::support::*;
 use qingjian_core::{
-    CandidateKind, Prediction, PredictionKind, PredictionPolicy, PredictionRequest, Predictor,
+    CandidateKind, CloudWord, Prediction, PredictionKind, PredictionPolicy, PredictionRequest,
+    Predictor,
 };
 
 #[derive(Clone, Default)]
@@ -12,14 +13,17 @@ struct ControlledPredictor {
     submitted: Arc<Mutex<Vec<PredictionRequest>>>,
 
     replies: Arc<Mutex<VecDeque<Prediction>>>,
+
+    automatic: bool,
 }
 
 impl Predictor for ControlledPredictor {
     fn policy(&self) -> PredictionPolicy {
         PredictionPolicy {
+            automatic: self.automatic,
             slots: 0,
             max_items: 0,
-            sentence: false,
+            sentence: self.automatic,
             ..PredictionPolicy::default()
         }
     }
@@ -34,17 +38,170 @@ impl Predictor for ControlledPredictor {
 }
 
 fn controlled_router() -> (Router, ControlledPredictor) {
+    controlled_router_for_language(Language::English)
+}
+
+fn controlled_router_for_language(language: Language) -> (Router, ControlledPredictor) {
     let predictor = ControlledPredictor::default();
-    let mut router = router_with(RouterConfig {
-        cloud_enabled: false,
-        cloud_slots: 0,
-        sentence_translation: true,
-        ..RouterConfig::default()
-    });
+    let mut router = router_for_language(
+        RouterConfig {
+            cloud_enabled: false,
+            cloud_slots: 0,
+            sentence_translation: true,
+            ..RouterConfig::default()
+        },
+        language,
+    );
     router
         .engine_mut()
         .set_predictor(Box::new(predictor.clone()));
     (router, predictor)
+}
+
+fn automatic_router_for_language(language: Language) -> (Router, ControlledPredictor) {
+    let predictor = ControlledPredictor {
+        automatic: true,
+        ..ControlledPredictor::default()
+    };
+    let mut router = router_for_language(
+        RouterConfig {
+            cloud_enabled: true,
+            cloud_slots: 0,
+            sentence_translation: true,
+            ..RouterConfig::default()
+        },
+        language,
+    );
+    router
+        .engine_mut()
+        .set_predictor(Box::new(predictor.clone()));
+    (router, predictor)
+}
+
+#[test]
+fn non_english_languages_request_and_display_the_matching_sentence_translation() {
+    for (language, code) in [
+        (Language::Japanese, "ja"),
+        (Language::Spanish, "es"),
+        (Language::Vietnamese, "vi"),
+        (Language::German, "de"),
+    ] {
+        let (mut router, predictor) = controlled_router_for_language(language);
+        type_letters(&mut router, "xiangkaifa");
+        toggle(&mut router);
+        let request = translations(&predictor).pop().expect("Ctrl 应请求整句翻译");
+        assert_eq!(request.target_language, code);
+        let (_, commit, waiting) = press(&mut router, punct(' '));
+        assert_eq!(commit, None);
+        assert_eq!(preedit(&waiting), "xiang'kai'fa");
+        queue_translation(&predictor, &request, Some("translated sentence"));
+        let (frame, _) = poll(&mut router);
+        assert!(candidate_texts(&frame).contains(&"translated sentence"));
+        let (_, commit, after) = press(&mut router, punct(' '));
+        assert_eq!(commit.as_deref(), Some("translated sentence"));
+        assert!(after.is_empty());
+    }
+}
+
+#[test]
+fn old_compose_reply_and_surrounding_refresh_do_not_replace_a_pending_translation() {
+    let (mut router, predictor) = automatic_router_for_language(Language::English);
+    type_letters(&mut router, "xiangkaifa");
+    let compose = requests(&predictor, PredictionKind::Compose)
+        .pop()
+        .expect("输入期间应提交自动组句请求");
+    toggle(&mut router);
+    let translate = translations(&predictor).pop().expect("Ctrl 应提交翻译请求");
+    let compose_count = requests(&predictor, PredictionKind::Compose).len();
+
+    router.handle(ClientMessage::Surrounding {
+        session: SESSION,
+        text: "前文刷新".to_owned(),
+    });
+    assert_eq!(
+        requests(&predictor, PredictionKind::Compose).len(),
+        compose_count
+    );
+
+    queue(
+        &predictor,
+        Prediction {
+            sequence: compose.sequence,
+            words: vec![CloudWord {
+                text: "想".to_owned(),
+                syllables: vec!["xiang".to_owned()],
+                reading: None,
+            }],
+            sentence: Some("旧组句结果".to_owned()),
+        },
+    );
+    queue_translation(&predictor, &translate, Some("the requested translation"));
+    let (compose_frame, _) = poll(&mut router);
+    assert!(!candidate_texts(&compose_frame).contains(&"旧组句结果"));
+    let (translated_frame, _) = poll(&mut router);
+    assert!(candidate_texts(&translated_frame).contains(&"the requested translation"));
+    let (_, commit, after) = press(&mut router, punct(' '));
+    assert_eq!(commit.as_deref(), Some("the requested translation"));
+    assert!(after.is_empty());
+}
+
+#[test]
+fn manual_prediction_during_translation_wait_returns_to_chinese_and_requests_compose() {
+    let (mut router, predictor) = automatic_router_for_language(Language::English);
+    type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    assert_eq!(translations(&predictor).len(), 1);
+    let compose_count = requests(&predictor, PredictionKind::Compose).len();
+
+    let predict_key = KeyEvent::new(
+        0x4A,
+        Some('j'),
+        KeyModifiers {
+            ctrl: true,
+            alt: true,
+            ..Default::default()
+        },
+    );
+    let frame = press(&mut router, predict_key).2;
+    assert!(candidate_texts(&frame).contains(&"想开发"));
+    assert_eq!(translations(&predictor).len(), 1);
+    let compose = requests(&predictor, PredictionKind::Compose);
+    assert_eq!(compose.len(), compose_count + 1);
+    assert!(compose.last().unwrap().manual);
+
+    queue(
+        &predictor,
+        Prediction {
+            sequence: compose.last().unwrap().sequence,
+            words: Vec::new(),
+            sentence: Some("manual compose sentence".to_owned()),
+        },
+    );
+    let (after, _) = poll(&mut router);
+    assert!(candidate_texts(&after).contains(&"想开发"));
+    assert!(!candidate_texts(&after).contains(&"manual compose sentence"));
+}
+
+#[test]
+fn late_japanese_translation_is_discarded_after_switching_to_german() {
+    let (mut router, predictor) = controlled_router_for_language(Language::Japanese);
+    type_letters(&mut router, "xiangkaifa");
+    toggle(&mut router);
+    let japanese = translations(&predictor).pop().expect("应提交日语翻译请求");
+    assert_eq!(japanese.target_language, "ja");
+
+    let german = qingjian_translate::Glossary::empty(Language::German);
+    router.engine_mut().set_translator(Box::new(german));
+    queue_translation(&predictor, &japanese, Some("日本語の古い結果"));
+    let (after, commit) = poll(&mut router);
+    assert_eq!(commit, None);
+    assert!(candidate_texts(&after).contains(&"想开发"));
+    assert!(!candidate_texts(&after).contains(&"日本語の古い結果"));
+
+    toggle(&mut router);
+    let requests = translations(&predictor);
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[1].target_language, "de");
 }
 
 fn translations(predictor: &ControlledPredictor) -> Vec<PredictionRequest> {
@@ -56,6 +213,21 @@ fn translations(predictor: &ControlledPredictor) -> Vec<PredictionRequest> {
         .filter(|request| request.kind == PredictionKind::Translate)
         .cloned()
         .collect()
+}
+
+fn requests(predictor: &ControlledPredictor, kind: PredictionKind) -> Vec<PredictionRequest> {
+    predictor
+        .submitted
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|request| request.kind == kind)
+        .cloned()
+        .collect()
+}
+
+fn queue(predictor: &ControlledPredictor, prediction: Prediction) {
+    predictor.replies.lock().unwrap().push_back(prediction);
 }
 
 fn queue_translation(

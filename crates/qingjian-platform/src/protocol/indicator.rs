@@ -24,6 +24,11 @@ pub enum IndicatorCommand {
     /// 打开用量与费用详情。
     OpenUsageCosts,
 
+    OpenUsagePanel {
+        x: i32,
+        y: i32,
+    },
+
     /// 请求 Server 在后台刷新账户余额。
     RefreshBalance,
 

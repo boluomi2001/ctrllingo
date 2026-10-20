@@ -8,6 +8,12 @@ pub struct CostLedgerSummary {
 
     pub requests: u64,
 
+    pub translation_requests: u64,
+
+    pub prediction_requests: u64,
+
+    pub other_requests: u64,
+
     pub input_tokens: u64,
 
     pub output_tokens: u64,
@@ -15,6 +21,8 @@ pub struct CostLedgerSummary {
     pub cached_input_tokens: u64,
 
     pub unknown: u64,
+
+    pub unknown_token_requests: u64,
 
     pub pending: u64,
 

@@ -104,10 +104,13 @@ fn balance_query_returns_while_local_server_is_delayed() {
 }
 
 #[test]
-fn concurrent_and_failed_requests_share_the_sixty_second_throttle() {
-    let (endpoint, requests, server) =
-        mock_server(vec![(500, "{}".to_owned(), Duration::from_millis(250))]);
-    let dir = temporary_dir("throttle");
+fn concurrent_requests_merge_but_success_and_failure_can_retry_immediately() {
+    let (endpoint, requests, server) = mock_server(vec![
+        (500, "{}".to_owned(), Duration::from_millis(250)),
+        (200, success_body(), Duration::ZERO),
+        (200, success_body(), Duration::ZERO),
+    ]);
+    let dir = temporary_dir("inflight");
     let monitor = Arc::new(CostMonitor::new(&Default::default(), &dir));
     let callers = 8;
     let start = Arc::new(Barrier::new(callers + 1));
@@ -127,13 +130,16 @@ fn concurrent_and_failed_requests_share_the_sixty_second_throttle() {
         thread.join().unwrap();
     }
     wait_for_idle(&monitor);
-    let failed_attempt = monitor.state.lock().unwrap().last_attempt;
+    assert!(monitor.state.lock().unwrap().error.is_some());
+    monitor.start_balance_query(endpoint.clone(), "test-key".to_owned());
+    wait_for_idle(&monitor);
+    assert!(monitor.state.lock().unwrap().balance.is_some());
     monitor.start_balance_query(endpoint, "test-key".to_owned());
+    wait_for_idle(&monitor);
     server.join().unwrap();
 
-    assert_eq!(requests.load(Ordering::SeqCst), 1);
-    assert_eq!(monitor.state.lock().unwrap().last_attempt, failed_attempt);
-    assert!(monitor.summaries().1.contains("HTTP 500"));
+    assert_eq!(requests.load(Ordering::SeqCst), 3);
+    assert!(monitor.state.lock().unwrap().last_attempt.is_some());
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -149,7 +155,6 @@ fn failed_refresh_keeps_the_previous_balance_and_success_time() {
             text: "CNY 8.00 / USD 1.00".to_owned(),
             updated,
         });
-        state.last_attempt = Some(Instant::now() - Duration::from_secs(61));
     }
 
     monitor.start_balance_query(endpoint, "test-key".to_owned());
@@ -162,9 +167,9 @@ fn failed_refresh_keeps_the_previous_balance_and_success_time() {
     assert_eq!(balance.updated, updated);
     assert!(state.error.as_deref().unwrap().contains("HTTP 500"));
     drop(state);
-    let summary = monitor.summaries().1;
-    assert!(summary.contains("CNY 8.00 / USD 1.00"));
-    assert!(summary.contains("更新失败"));
+    let panel = monitor.panel(false, qingjian_core::Language::Chinese);
+    assert_eq!(panel.balance, "CNY 8.00 / USD 1.00");
+    assert!(panel.updated.contains("更新失败"));
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -184,14 +189,11 @@ fn different_sessions_use_the_routers_single_cost_monitor() {
         },
     );
     let last_attempt = Instant::now();
-    router
-        .costs
-        .as_ref()
-        .unwrap()
-        .state
-        .lock()
-        .unwrap()
-        .last_attempt = Some(last_attempt);
+    {
+        let mut state = router.costs.as_ref().unwrap().state.lock().unwrap();
+        state.last_attempt = Some(last_attempt);
+        state.in_flight = true;
+    }
 
     for session in [SessionId(1), SessionId(2)] {
         let _ = router.handle(ClientMessage::Indicator {
@@ -200,17 +202,11 @@ fn different_sessions_use_the_routers_single_cost_monitor() {
         });
     }
 
-    assert_eq!(
-        router
-            .costs
-            .as_ref()
-            .unwrap()
-            .state
-            .lock()
-            .unwrap()
-            .last_attempt,
-        Some(last_attempt)
-    );
+    let mut state = router.costs.as_ref().unwrap().state.lock().unwrap();
+    assert_eq!(state.last_attempt, Some(last_attempt));
+    assert!(state.in_flight);
+    state.in_flight = false;
+    drop(state);
     drop(router);
     std::fs::remove_dir_all(dir).unwrap();
 }
@@ -291,8 +287,59 @@ fn local_cost_summary_refreshes_after_recording_a_response() {
     monitor.state.lock().unwrap().last_read = Some(Instant::now() - Duration::from_secs(2));
     monitor.summaries();
     wait_for_read();
-    assert!(monitor.summaries().0.contains("1 次"));
-    assert!(monitor.details().contains("未知费用"));
+    let panel = monitor.panel(false, qingjian_core::Language::English);
+    assert_eq!(panel.tokens, "120");
+    assert!(panel.requests.contains("其他/旧记录1次"));
+    assert!(
+        monitor
+            .panel(false, qingjian_core::Language::English)
+            .details
+            .contains("未知")
+    );
+    drop(monitor);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn panel_caches_today_and_total_with_nonduplicated_tokens_and_unknown_flags() {
+    use qingjian_core::Language;
+
+    let dir = temporary_dir("panel");
+    let path = dir.join(qingjian_predict::COST_LEDGER_FILE);
+    let ledger = qingjian_predict::CostLedger::load(&path).unwrap();
+    let today = ledger
+        .record_attempt_for("local-test", "local-test", "translate")
+        .unwrap();
+    ledger
+        .record_result(
+            &today,
+            Some(&json!({"usage":{"prompt_tokens":100,"completion_tokens":20,"prompt_cache_hit_tokens":40}})),
+        )
+        .unwrap();
+    let unknown = ledger.record_attempt("local-test", "local-test").unwrap();
+    ledger.record_result(&unknown, None).unwrap();
+    let monitor = CostMonitor::new(&Default::default(), &dir);
+    let _ = monitor.panel(false, Language::Chinese);
+    let deadline = Instant::now() + Duration::from_secs(3);
+    while monitor.state.lock().unwrap().reading {
+        assert!(Instant::now() < deadline, "费用账本读取未结束");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let day_panel = monitor.panel(false, Language::Chinese);
+    let total_panel = monitor.panel(true, Language::Chinese);
+    assert_eq!(day_panel.tokens, "已知 120");
+    assert!(day_panel.token_detail.contains("输入 100"));
+    assert!(day_panel.token_detail.contains("缓存命中 40"));
+    assert!(day_panel.requests.contains("翻译1次"));
+    assert!(day_panel.requests.contains("其他/旧记录1次"));
+    assert!(day_panel.details.contains("用量或费用未知 2 次"));
+    assert!(day_panel.details.contains("今日（"));
+    assert!(day_panel.details.contains("北京时间"));
+    assert!(total_panel.details.contains("累计估算"));
+    assert_eq!(
+        monitor.panel(false, Language::Japanese).target_language,
+        "日语"
+    );
     drop(monitor);
     std::fs::remove_dir_all(dir).unwrap();
 }

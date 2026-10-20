@@ -50,6 +50,23 @@ pub fn router_with(config: RouterConfig) -> Router {
     router_in_app_with(config, "notepad.exe")
 }
 
+pub fn router_for_language(config: RouterConfig, language: Language) -> Router {
+    let mut router = router_with(config);
+    let translation = match language {
+        Language::English => "hello",
+        Language::Japanese => "こんにちは",
+        Language::Spanish => "hola",
+        Language::Vietnamese => "xin chào",
+        Language::German => "hallo",
+        Language::Chinese => unreachable!(),
+    };
+    let glossary = qingjian_translate::Glossary::parse(language, &format!("你好\t{translation}"))
+        .expect("parse in-memory test glossary");
+    router.engine_mut().set_translator(Box::new(glossary));
+    open_session(&mut router, SESSION, Some("notepad.exe".to_owned()));
+    router
+}
+
 /// 在某个应用（宿主 exe 名）里开会话。
 pub fn router_in_app(app: &str) -> Router {
     router_in_app_with(RouterConfig::default(), app)

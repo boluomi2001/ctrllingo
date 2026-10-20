@@ -168,8 +168,7 @@ impl From<&Config> for RouterConfig {
         Self {
             page_size: config.general.page_size(),
             cloud_slots: config.predict.slots,
-            cloud_enabled: config.predict.enabled
-                && !(config.shortcut.ctrl_swap_translation && config.predict.sentence_translation),
+            cloud_enabled: config.predict.enabled,
             sentence_translation: config.predict.sentence_translation,
             shift_letter_compose: config.general.shift_letter.compose(),
             layout: config.general.layout,

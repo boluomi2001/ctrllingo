@@ -1,4 +1,4 @@
-//! 按需查询官方余额；所有应用共用同一个 Server 实例的 60 秒缓存。
+//! 按需查询官方余额；所有应用共用同一个 Server 实例的在途请求。
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -7,11 +7,10 @@ use std::time::{Duration, Instant};
 use qingjian_predict::{COST_LEDGER_FILE, PredictConfig};
 
 use super::beijing_now;
+use super::panel_view::CostPanelView;
 use super::snapshot::BalanceSnapshot;
 use super::state::MonitorState;
 use super::view;
-
-const BALANCE_INTERVAL: Duration = Duration::from_secs(60);
 
 pub(in crate::dispatch) struct CostMonitor {
     config: PredictConfig,
@@ -48,11 +47,7 @@ impl CostMonitor {
 
     pub(super) fn start_balance_query(&self, endpoint: String, key: String) {
         let mut state = self.state.lock().unwrap();
-        if state.in_flight
-            || state
-                .last_attempt
-                .is_some_and(|last| last.elapsed() < BALANCE_INTERVAL)
-        {
+        if state.in_flight {
             return;
         }
         state.last_attempt = Some(Instant::now());
@@ -104,9 +99,9 @@ impl CostMonitor {
                     let changed = shared.lock().unwrap().ledger_stamp.as_ref() != Some(&stamp);
                     let update = changed.then(|| view::ledger(&path));
                     let mut state = shared.lock().unwrap();
-                    if let Some((summary, details)) = update {
-                        state.cost_summary = summary;
-                        state.cost_details = details;
+                    if let Some((today, total)) = update {
+                        state.today_panel = Some(today);
+                        state.total_panel = Some(total);
                         state.ledger_stamp = Some(stamp);
                     }
                     state.last_read = Some(Instant::now());
@@ -117,26 +112,38 @@ impl CostMonitor {
                 state.last_read = Some(Instant::now());
             }
         }
-        let summary = if state.cost_summary.is_empty() {
-            "统计读取中…".to_owned()
-        } else {
-            state.cost_summary.clone()
-        };
+        let summary = state
+            .today_panel
+            .as_ref()
+            .map(|panel| panel.amount.clone())
+            .unwrap_or_else(|| "统计读取中…".to_owned());
         (summary, view::balance(&state))
     }
 
-    pub(in crate::dispatch) fn details(&self) -> String {
-        let (_, balance) = self.summaries();
+    pub(in crate::dispatch) fn panel(
+        &self,
+        total: bool,
+        language: qingjian_core::Language,
+    ) -> CostPanelView {
+        self.summaries();
         let state = self.state.lock().unwrap();
-        let details = if state.cost_details.is_empty() {
-            "统计读取中，请稍后重新打开。"
+        let mut panel = if total {
+            state.total_panel.clone()
         } else {
-            &state.cost_details
-        };
-        format!(
-            "{}\n\nDeepSeek 账户余额：{balance}\n\n账户余额包含该账户的其他使用和充值，不等于本输入法消费。\n余额查询每分钟最多一次；重新打开此窗口可查看新结果。\n估算使用人民币公开价格，以平台账单为准。",
-            details
-        )
+            state.today_panel.clone()
+        }
+        .unwrap_or_else(|| CostPanelView {
+            amount: "统计读取中…".to_owned(),
+            details: "费用统计读取中…".to_owned(),
+            ..CostPanelView::default()
+        });
+        panel.balance = view::balance(&state);
+        panel.updated = view::updated(&state);
+        panel.details.push_str(&format!(
+            "\n\nDeepSeek 账户余额：{}\n{}\n账户余额包含该账户的其他使用和充值，不等于本输入法消费。\n每次打开费用卡片都会自动查询余额。\n估算使用人民币公开价格，以平台账单为准。",
+            panel.balance, panel.updated
+        ));
+        view::with_language(panel, language)
     }
 }
 

@@ -32,7 +32,6 @@ use qingjian_render::StatusCell;
 
 use self::cell::CellSpec;
 use self::placement::{Placement, StatusAction};
-use super::StatusEvents;
 use super::candidates::resolve_dark;
 use super::candidates::theme::Theme;
 use super::candidates::view;
@@ -40,7 +39,7 @@ use super::layered::{self, Layered};
 use super::monitor;
 use super::painter::SharedPainter;
 use super::window_class::WindowClass;
-use crate::dispatch::StatusView;
+use crate::dispatch::{StatusEvent, StatusView};
 
 const CLASS_NAME: PCWSTR = w!("QingjianStatusBar");
 static CLASS: WindowClass = WindowClass::new();
@@ -89,7 +88,7 @@ const PANEL_TEXT: &str = "符";
 
 impl StatusBar {
     /// 建一个隐藏的状态条窗口。
-    pub(super) fn new(events: StatusEvents, painter: SharedPainter) -> Result<Self> {
+    pub(super) fn new(events: Rc<dyn Fn(StatusEvent)>, painter: SharedPainter) -> Result<Self> {
         CLASS.ensure(|| WNDCLASSEXW {
             lpfnWndProc: Some(wndproc),
             hInstance: super::module_handle(),

@@ -16,6 +16,9 @@ pub(super) struct LedgerEntry {
 
     pub model: String,
 
+    #[serde(default)]
+    pub purpose: String,
+
     pub price_version: Option<String>,
 
     pub state: AttemptState,

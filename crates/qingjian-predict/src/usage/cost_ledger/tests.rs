@@ -71,6 +71,60 @@ fn pending_and_unknown_attempts_stay_distinct_and_survive_reload() {
 }
 
 #[test]
+fn old_entries_without_purpose_load_as_other() {
+    let path = scratch();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, br#"{"attempts":[{"id":"old","day":"2026-10-19","started_unix_secs":1,"provider_host":"legacy","model":"legacy","price_version":null,"state":"Finished","input_tokens":null,"output_tokens":null,"cached_input_tokens":null,"cache_detail_known":false,"lower_nano_cny":null,"upper_nano_cny":null}],"since_unix_secs":1}"#).unwrap();
+    let summary = CostLedger::load(&path)
+        .unwrap()
+        .summary("2026-10-19")
+        .unwrap();
+    assert_eq!(summary.requests, 1);
+    assert_eq!(summary.other_requests, 1);
+    assert_eq!(summary.translation_requests, 0);
+    assert_eq!(summary.prediction_requests, 0);
+}
+
+#[test]
+fn totals_count_purposes_across_days_and_keep_pending_unknown_states() {
+    let path = scratch();
+    let ledger = CostLedger::load(&path).unwrap();
+    let translate = ledger
+        .record_attempt_for("api.deepseek.com", "deepseek-flash", "translate")
+        .unwrap();
+    let compose = ledger
+        .record_attempt_for("api.deepseek.com", "deepseek-flash", "compose")
+        .unwrap();
+    let other = ledger
+        .record_attempt("api.deepseek.com", "deepseek-flash")
+        .unwrap();
+    ledger.record_result(&compose, None).unwrap();
+
+    let mut data: super::data::LedgerData =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    data.attempts[0].day = "2026-10-18".to_owned();
+    data.attempts[1].day = "2026-10-19".to_owned();
+    data.attempts[2].day = "2026-10-20".to_owned();
+    std::fs::write(&path, serde_json::to_vec(&data).unwrap()).unwrap();
+
+    let ledger = CostLedger::load(&path).unwrap();
+    let total = ledger.total().unwrap();
+    assert_eq!(total.requests, 3);
+    assert_eq!(total.translation_requests, 1);
+    assert_eq!(total.prediction_requests, 1);
+    assert_eq!(total.other_requests, 1);
+    assert_eq!(total.pending, 2);
+    assert_eq!(total.unknown, 1);
+    assert_eq!(total.upper_nano_cny, None);
+    let day = ledger.summary("2026-10-19").unwrap();
+    assert_eq!(day.requests, 1);
+    assert_eq!(day.prediction_requests, 1);
+    assert_eq!(day.translation_requests, 0);
+    assert_eq!(day.pending, 0);
+    let _ = (translate, other);
+}
+
+#[test]
 fn malformed_ledger_is_preserved_and_never_reset() {
     let path = scratch();
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();

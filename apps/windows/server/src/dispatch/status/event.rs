@@ -12,4 +12,12 @@ pub enum StatusEvent {
 
     /// 拖动结束，内容左上角的新位置（物理像素）。
     Moved(i32, i32),
+
+    OpenUsageCosts(i32, i32),
+
+    PollUsageCosts {
+        total: bool,
+    },
+
+    SelectLearningLanguage(qingjian_core::Language),
 }

@@ -194,15 +194,24 @@ impl Engine {
     /// （[`translation_target`]）。预测服务未接入、私密输入中、文字为空时不发，返回 `None`；
     /// 译文从 [`Self::poll_prediction`] 的 `sentence` 里出。不进学习、不动缓冲区。
     pub fn request_translation(&mut self, text: &str) -> Option<u64> {
-        self.submit_translation(text, true)
+        self.submit_translation(text, true, None)
+    }
+
+    pub fn request_candidate_translation(&mut self, text: &str) -> Option<u64> {
+        self.submit_translation(text, true, Some(self.translator.language()))
     }
 
     /// 为当前整句候选请求译文。和组句联想一样等停键，避免输入变化时重复发出。
     pub fn request_sentence_translation(&mut self, text: &str) -> Option<u64> {
-        self.submit_translation(text, false)
+        self.submit_translation(text, false, None)
     }
 
-    fn submit_translation(&mut self, text: &str, manual: bool) -> Option<u64> {
+    fn submit_translation(
+        &mut self,
+        text: &str,
+        manual: bool,
+        target: Option<crate::Language>,
+    ) -> Option<u64> {
         let text = text.trim();
         if !self.predictor.is_enabled() || self.private || text.is_empty() {
             return None;
@@ -222,7 +231,8 @@ impl Engine {
             max_items: 1,
             want_sentence: true,
             text: text.to_owned(),
-            target_language: translation_target(text, self.translator.language())
+            target_language: target
+                .unwrap_or_else(|| translation_target(text, self.translator.language()))
                 .code()
                 .to_owned(),
         };

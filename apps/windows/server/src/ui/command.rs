@@ -3,7 +3,7 @@
 use qingjian_platform::protocol::{Frame, ScreenRect};
 use qingjian_render::Mode;
 
-use crate::dispatch::{PanelFrame, RenderSettings, StatusView};
+use crate::dispatch::{CostPanelView, PanelFrame, RenderSettings, StatusView};
 
 /// 交给 UI 线程执行的命令。`Frame` 较大，装箱免得枚举过胖。
 pub(super) enum UiCommand {
@@ -27,4 +27,8 @@ pub(super) enum UiCommand {
 
     /// 换画法（渲染器 / 字体）。
     Configure(RenderSettings),
+
+    CostsShow(Box<(CostPanelView, (i32, i32))>),
+
+    CostsUpdate(Box<CostPanelView>),
 }
