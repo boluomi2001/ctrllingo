@@ -155,7 +155,7 @@ if (-not (Test-Path -LiteralPath $config)) {
         'levels\levels-en.tsv', 'levels\levels-ja.tsv', 'levels\README.md',
         'wubi\wubi86.tsv', 'wubi\README.md', 'wubi\LICENSE',
         'sample\dict.tsv', 'sample\english.tsv', 'sample\glossary-en.tsv', 'sample\glossary-ja.tsv',
-        'sample\glossary-zh.tsv', 'sample\glossary-es.tsv', 'sample\glossary-vi.tsv', 'sample\glossary-de.tsv', 'sample\README.md',
+        'sample\glossary-vi.tsv', 'sample\glossary-de.tsv', 'sample\README.md',
         'glossary\glossary-en.tsv', 'glossary\glossary-ja.tsv', 'glossary\glossary-zh.tsv',
         'glossary\glossary-es.tsv', 'glossary\glossary-vi.tsv', 'glossary\glossary-de.tsv', 'glossary\README.md',
         'stroke\README.md', 'stroke\LICENSE-CNS11643.txt'
