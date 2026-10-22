@@ -1,0 +1,25 @@
+[general]
+learning_language = "en"
+layout = "vertical"
+page_size = 5
+input_log = false
+
+[shortcut]
+ctrl_swap_translation = true
+switch_mode = ["shift"]
+
+[predict]
+enabled = false
+automatic = false
+sentence_translation = true
+vocabulary_translation = false
+debounce_ms = 350
+min_interval_ms = 600
+timeout_ms = 10000
+api_key_env = "CTRLLINGO_API_KEY"
+
+[update]
+check = false
+
+[status_bar]
+enabled = true

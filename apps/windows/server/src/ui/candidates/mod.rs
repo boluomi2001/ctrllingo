@@ -34,7 +34,7 @@ use super::monitor;
 use super::painter::SharedPainter;
 use super::window_class::WindowClass;
 
-const CLASS_NAME: PCWSTR = w!("QingjianCandidateWindow");
+const CLASS_NAME: PCWSTR = w!("CtrlLingoCandidateWindow");
 static CLASS: WindowClass = WindowClass::new();
 
 /// 动画定时器的 id（间隔按渲染器给的 `next_frame`；系统定时器精度约 15.6 ms）。
@@ -102,7 +102,7 @@ impl CandidateWindow {
             CreateWindowExW(
                 WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
                 CLASS_NAME,
-                w!("青简候选"),
+                w!("译点候选"),
                 WS_POPUP,
                 0,
                 0,

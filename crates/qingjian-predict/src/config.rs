@@ -64,7 +64,7 @@ impl Default for PredictConfig {
             base_url: "https://api.deepseek.com".to_owned(),
             model: "deepseek-flash".to_owned(),
             api_key: None,
-            api_key_env: "QINGJIAN_API_KEY".to_owned(),
+            api_key_env: "CTRLLINGO_API_KEY".to_owned(),
             timeout_ms: 5000,
             debounce_ms: 300,
             min_interval_ms: 3000,

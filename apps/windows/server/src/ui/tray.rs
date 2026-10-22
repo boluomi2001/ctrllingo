@@ -17,7 +17,7 @@ use windows::core::{PCWSTR, Result, w};
 use super::window_class::WindowClass;
 use crate::dispatch::StatusEvent;
 
-const CLASS_NAME: PCWSTR = w!("QingjianTrayMessageWindow");
+const CLASS_NAME: PCWSTR = w!("CtrlLingoTrayMessageWindow");
 const CALLBACK_MESSAGE: u32 = WM_APP + 0x71;
 const ICON_ID: u32 = 1;
 static CLASS: WindowClass = WindowClass::new();
@@ -58,7 +58,7 @@ impl TrayIcon {
             CreateWindowExW(
                 Default::default(),
                 CLASS_NAME,
-                w!("青简托盘消息窗口"),
+                w!("译点托盘消息窗口"),
                 Default::default(),
                 0,
                 0,
@@ -122,7 +122,7 @@ fn notify_data(
         hIcon: icon,
         ..Default::default()
     };
-    let tip: Vec<u16> = "青简双语测试".encode_utf16().collect();
+    let tip: Vec<u16> = "译点 CtrlLingo".encode_utf16().collect();
     for (target, value) in data.szTip.iter_mut().zip(tip) {
         *target = value;
     }

@@ -5,9 +5,9 @@ use std::process::Command;
 
 use crate::system::paths;
 
-pub const WEBSITE_URL: &str = "https://qingjian.app";
+pub const WEBSITE_URL: &str = "https://github.com/boluomi2001/ctrllingo";
 
-pub const REPOSITORY_URL: &str = "https://github.com/qingjian-team";
+pub const REPOSITORY_URL: &str = "https://github.com/boluomi2001/ctrllingo";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {

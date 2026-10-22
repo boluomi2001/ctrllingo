@@ -3,6 +3,16 @@
 这个目录里的 Markdown 是给**用户**看的，官网（`qingjian-web`）构建时拉取整个目录，按目录结构渲染成文档页。
 `docs/` 下其他目录是给开发者看的工程文档，不渲染。
 
+## CtrlLingo 文档索引与平台范围
+
+CtrlLingo 0.1.0 是面向 Windows 的独立预发布版本。此目录有一部分内容继承自 Qingjian 上游；macOS、Linux 段落若未明确标为译点版本，属于上游参考资料，不代表译点已提供或验收相应平台的安装包。
+
+- [项目介绍、下载与基本使用](../../README.md)
+- [隐私说明](../PRIVACY.md)：本机数据、云请求、密钥与日志处理
+- [上游来源与归属](../UPSTREAM.md)：基于 Qingjian 的版本与许可
+- [0.1.0 发布验收边界](../RELEASE-VALIDATION.md)：发布目标和待完成的真机验收
+- [Windows 安装包构建说明](../../apps/windows/installer/README-CtrlLingo.md)
+
 这个 README 是维护约定，不渲染。
 
 ## 结构

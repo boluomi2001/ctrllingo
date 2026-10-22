@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use bamboo_slip::{FamilyId, SvgImage, TextEdit, Waker};
+use bamboo_slip::{FamilyId, TextEdit, Waker};
 use qingjian_platform::{Appearance, Config, ConfigError};
 use qingjian_render::{TextSizes, Theme, ThemeLibrary};
 
@@ -51,7 +51,7 @@ pub struct Settings {
 
     pub previews: RefCell<Previews>,
 
-    pub logo: Option<Arc<SvgImage>>,
+    pub logo: Option<Arc<tiny_skia::Pixmap>>,
 
     /// 侧栏品牌字用的宋体字族。
     pub serif: FamilyId,
@@ -137,10 +137,12 @@ impl Settings {
             Config::default()
         };
         let themes = ThemeLibrary::load(paths::themes_dir().as_deref());
-        let logo = SvgImage::parse(include_bytes!("../../assets/logo.svg"))
-            .map(Arc::new)
-            .inspect_err(|error| tracing::warn!(%error, "logo 解析失败"))
-            .ok();
+        let logo = tiny_skia::Pixmap::decode_png(include_bytes!(
+            "../../../../assets/brand/ctrllingo-mark.png"
+        ))
+        .map(Arc::new)
+        .inspect_err(|error| tracing::warn!(%error, "logo 解析失败"))
+        .ok();
         Ok(Self {
             path,
             config,

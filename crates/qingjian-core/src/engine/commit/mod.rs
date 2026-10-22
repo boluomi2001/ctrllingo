@@ -7,7 +7,8 @@ use super::learning::Learner;
 use super::query::EnglishTail;
 use super::{
     AUTO_WORD_MAX_CHARS, AUTO_WORD_THRESHOLD, AUTO_WORD_THRESHOLD_SAME_BUFFER,
-    EXPLICIT_TRANSITION_WEIGHT, Engine, choice_key, reading_key, segment_longest_prefix,
+    EXPLICIT_TRANSITION_WEIGHT, Engine, SENTENCE_CANDIDATES, choice_key, reading_key,
+    segment_longest_prefix,
 };
 use crate::candidate::{Candidate, CandidateKind, CandidateList, Language};
 use crate::correction::typo;
@@ -248,7 +249,7 @@ impl Engine {
                 );
             }
             CandidateKind::Sentence => match sentence_words {
-                Some(words) => {
+                Some((words, explicit)) => {
                     // 句末的英文词（我想学好rust 的 rust）记进个人英文词表，和英文候选上屏一样
                     if let Some(word) = words.last().filter(|w| is_english_word(w)) {
                         self.learner.learn_english(&word.text);
@@ -259,7 +260,7 @@ impl Engine {
                     let junction = self.chain.same_buffer() && self.chain.previous().is_some();
                     let last = words.len() - 1;
                     for (index, word) in words.iter().enumerate() {
-                        let times = if index == 0 && junction {
+                        let times = if explicit || (index == 0 && junction) {
                             EXPLICIT_TRANSITION_WEIGHT
                         } else {
                             1
@@ -466,25 +467,37 @@ impl Engine {
     pub(super) fn sentence_words(
         &self,
         candidate: &Candidate,
-    ) -> Option<Vec<sentence::SentenceWord>> {
+    ) -> Option<(Vec<sentence::SentenceWord>, bool)> {
         let scope = self.composition.scope();
         if self.decode(scope).is_none()
             && let Some(tail) = self.split_english_tail(scope)
             && let Some(words) = self.mixed_words(scope, &tail, &candidate.text)
         {
-            return Some(words);
+            return Some((words, false));
         }
-        let conversion = match (self.decode(scope), self.active_correction(scope)) {
+        let paths = match (self.decode(scope), self.active_correction(scope)) {
             (Some(decoded), _) => {
-                self.convert_sentence(&decoded.segmentation()?.patterns(), true)?
+                let segmentation = decoded.segmentation()?;
+                self.sentence_paths(&segmentation.patterns(), true, false, SENTENCE_CANDIDATES)
             }
-            (None, Some(c)) => self.convert_sentence(&c.segmentation.patterns(), false)?,
+            (None, Some(c)) => self.sentence_paths(
+                &c.segmentation.patterns(),
+                false,
+                false,
+                SENTENCE_CANDIDATES,
+            ),
             (None, None) => {
                 let (segmentations, _) = segment_longest_prefix(scope).ok()?;
-                self.convert_sentence(&segmentations.first()?.patterns(), true)?
+                self.sentence_paths(
+                    &segmentations.first()?.patterns(),
+                    true,
+                    false,
+                    SENTENCE_CANDIDATES,
+                )
             }
         };
-        (conversion.text == candidate.text).then_some(conversion.words)
+        let index = paths.iter().position(|path| path.text == candidate.text)?;
+        Some((paths.into_iter().nth(index)?.words, index > 0))
     }
 
     /// 头段拼音的转换加上英文尾段，与 `text` 对得上时的词序列。

@@ -41,7 +41,7 @@ try {
     foreach ($name in @('install-test.ps1', 'uninstall-test.ps1', 'install-test.cmd', 'uninstall-test.cmd', 'default-config.toml', '先看这里.md')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $package
     }
-    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'docs\notes\Ctrl按需翻译与费用验证记录.md', 'docs\notes\第三版费用面板与多语言验证记录.md', 'LICENSE' -Destination $package
+    Copy-Item -LiteralPath 'docs\notes\双语测试验收.md', 'docs\notes\双语版本验证记录.md', 'docs\notes\Ctrl按需翻译与费用验证记录.md', 'docs\notes\第三版费用面板与多语言验证记录.md', 'docs\notes\第四版费用窗口与重排验证记录.md', 'LICENSE' -Destination $package
     if ($PreviewDirectory -and (Test-Path -LiteralPath $PreviewDirectory)) {
         Copy-Item -LiteralPath $PreviewDirectory -Destination (Join-Path $package '预览') -Recurse
     }
@@ -49,9 +49,11 @@ try {
         'Personal Windows bilingual test fork; not an official release.',
         'Upstream base: c97ff2b61933d6fcd845ee4f4f470faf3ea83bf6',
         "Fork source commit: $(git rev-parse HEAD)",
-        'Rollback tag: test/ctrl-cost-20261020 (b1207bada488b01ec23c96cbbd16c69fc39bdc6b)',
-        'Edition: third bilingual test; independent cloud controls and multilingual Ctrl translation.',
+        'Earlier rollback tag: test/ctrl-cost-20261020 (b1207bada488b01ec23c96cbbd16c69fc39bdc6b)',
+        'Edition: fourth bilingual test; compact teal usage panel, conservative rescoring and alternate-sentence learning.',
+        'Validation: local simulation and message-level UI interaction passed; real TSF and real API were not verified.',
         "Targets: $Target / $Target32",
+        '32-bit TSF: reused the existing unchanged DLL; not rebuilt during fourth-edition verification.',
         "Rust: $(rustc --version)",
         "Rust flags: $env:RUSTFLAGS",
         "Build helper optimization: $env:CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_OPT_LEVEL",
@@ -66,7 +68,10 @@ try {
     try {
         $tracked = git -c core.quotepath=false ls-files -co --exclude-standard
         foreach ($file in $tracked) {
-            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($sourceZip, (Join-Path $repo $file), $file, 'Optimal') | Out-Null
+            $sourcePath = Join-Path $repo $file
+            if (Test-Path -LiteralPath $sourcePath -PathType Leaf) {
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($sourceZip, $sourcePath, $file, 'Optimal') | Out-Null
+            }
         }
     } finally { $sourceZip.Dispose() }
 

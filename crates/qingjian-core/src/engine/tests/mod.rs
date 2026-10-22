@@ -13,6 +13,7 @@ mod lookup;
 mod panel;
 mod privacy;
 mod raw;
+mod sentence_learning;
 mod shuangpin;
 mod spacing;
 mod traditional;

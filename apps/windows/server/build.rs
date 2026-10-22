@@ -17,7 +17,7 @@ fn main() {
         if ui_access {
             println!("cargo:warning=QINGJIAN_UIACCESS=1：Server 带 uiAccess，没签名的话起不来");
         }
-        let manifest = new_manifest("Qingjian.Server")
+        let manifest = new_manifest("CtrlLingo.Server")
             .requested_execution_level(ExecutionLevel::AsInvoker)
             .ui_access(ui_access);
         embed_manifest(manifest).expect("嵌入 Server manifest 失败");
@@ -30,9 +30,15 @@ fn main() {
 /// winresource 缺省不带 manifest，与上面链接器嵌的那份不冲突。
 #[cfg(windows)]
 fn embed_icon() {
-    const ICON: &str = "../tsf/resources/qingjian.ico";
+    const ICON: &str = "../tsf/resources/ctrllingo.ico";
     println!("cargo:rerun-if-changed={ICON}");
-    if let Err(error) = winresource::WindowsResource::new().set_icon(ICON).compile() {
+    if let Err(error) = winresource::WindowsResource::new()
+        .set("ProductName", "CtrlLingo · 译点")
+        .set("FileDescription", "译点 CtrlLingo 输入法服务")
+        .set("CompanyName", "boluomi2001")
+        .set_icon(ICON)
+        .compile()
+    {
         println!("cargo:warning=嵌入 Server 图标失败: {error}");
     }
 }

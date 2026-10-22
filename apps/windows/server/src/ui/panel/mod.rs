@@ -30,7 +30,7 @@ use super::monitor;
 use super::window_class::WindowClass;
 use crate::dispatch::{PanelFrame, PanelMouse};
 
-const CLASS_NAME: PCWSTR = w!("QingjianSymbolPanel");
+const CLASS_NAME: PCWSTR = w!("CtrlLingoSymbolPanel");
 static CLASS: WindowClass = WindowClass::new();
 
 /// 面板上的鼠标操作交给 Router 的回调（UI 线程上调，投给工人线程）。
@@ -82,7 +82,7 @@ impl PanelWindow {
             CreateWindowExW(
                 WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
                 CLASS_NAME,
-                w!("青简符号面板"),
+                w!("译点符号面板"),
                 WS_POPUP,
                 0,
                 0,

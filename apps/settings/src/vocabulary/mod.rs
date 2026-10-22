@@ -201,7 +201,7 @@ impl Vocabulary {
         if words.is_empty() {
             return Err("没有可导出的词".to_owned());
         }
-        let name = format!("青简生词本-{}.{}", self.today, format.extension());
+        let name = format!("译点生词本-{}.{}", self.today, format.extension());
         let Some(target) = rfd::FileDialog::new()
             .set_title("导出生词本")
             .set_file_name(&name)

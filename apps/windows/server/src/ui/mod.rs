@@ -166,7 +166,7 @@ impl StatusSink for UiHandle {
 
 /// 起与本 exe 同目录的设置程序。
 pub(crate) fn open_settings() {
-    launch_sibling("qingjian-settings.exe");
+    launch_sibling("ctrllingo-settings.exe");
 }
 
 /// 起与本 exe 同目录的程序。设置程序已开时由新实例把它带到前台，得先把前台权让出去。
@@ -226,7 +226,7 @@ fn run(
         .map_err(|error| tracing::error!(%error, "建费用卡片失败"))
         .ok();
     let _tray = TrayIcon::new(events)
-        .map_err(|error| tracing::error!(%error, "建青简托盘图标失败"))
+        .map_err(|error| tracing::error!(%error, "建译点托盘图标失败"))
         .ok();
     if ready.send(Some(thread_id)).is_err() {
         return;

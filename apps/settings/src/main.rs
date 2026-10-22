@@ -1,4 +1,4 @@
-//! 青简设置程序（新）：三平台共用、画在 bamboo-slip 上，读写输入法同一份配置文件，改动即时生效。
+//! 译点设置程序（新）：三平台共用、画在 bamboo-slip 上，读写输入法同一份配置文件，改动即时生效。
 //!
 //! - `qingjian-settings`：开窗口，读写用户配置（`paths::config_path`）。
 //! - `--config <文件>`：换一份配置文件读写（试用时不碰真配置）。
@@ -80,11 +80,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let config = config.ok_or("找不到配置文件的位置")?;
     let settings = Settings::load(config)?;
-    let title = if cfg!(windows) {
-        "青简双语测试设置"
-    } else {
-        "青简设置"
-    };
+    let title = "译点设置";
     let mut options = WindowOptions::new(title, (900.0, 680.0));
     options.min_size = (640.0, 420.0);
     run_window(settings, options)?;

@@ -1,4 +1,4 @@
-//! 神经重打分：整句转换的前几条路径交给字级模型（[`SentenceScorer`]）再排一次。
+//! 神经重打分：整句转换的前几条路径交给字级模型（[`crate::sentence::SentenceScorer`]）再排一次。
 //!
 //! 打分有两种接法：同步的（[`Engine::with_sentence_scorer`]，查询里当场打，CLI 评测用）和异步的
 //! （[`Engine::with_async_sentence_scorer`]，后台线程；壳里用）。两种都经过一张「前文 + 文本 → 神经分」的缓存
@@ -12,7 +12,8 @@ mod worker;
 #[cfg(test)]
 mod tests;
 
-use super::*;
+use super::{ALTERNATE_MIN_SYLLABLES, Engine, take_last_chars};
+use crate::sentence::Conversion;
 
 pub(crate) use cache::NeuralCache;
 pub(crate) use worker::RescoreWorker;
@@ -26,6 +27,9 @@ const GENERATE_MAX_CHARS: usize = 32;
 
 /// 生成出来的整句最多取几条当候选。
 const GENERATED_CANDIDATES: usize = 2;
+
+/// 四音节以上的多词整句需要足够的相对优势才翻转，避免模型的小幅分差改写默认项。
+const MIN_RESCORE_GAIN: f64 = 1.0;
 
 impl Engine {
     /// 接了重打分器（同步或异步）。
@@ -97,11 +101,24 @@ impl Engine {
             let neural = cache.get(&path.text).expect("filled above");
             path.score + lambda * (neural - path.static_score)
         };
+        let original_text = paths[0].text.clone();
+        let original_score = rescored(&paths[0]);
+        let original_word_count = paths[0].word_count();
+        let original_syllable_count = paths[0].syllables.len();
         paths.sort_by(|a, b| {
             rescored(b)
                 .partial_cmp(&rescored(a))
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
+        if paths[0].text != original_text
+            && original_word_count > 1
+            && paths[0].word_count() > 1
+            && original_syllable_count >= ALTERNATE_MIN_SYLLABLES
+            && rescored(&paths[0]) - original_score < MIN_RESCORE_GAIN
+            && let Some(index) = paths.iter().position(|path| path.text == original_text)
+        {
+            paths[..=index].rotate_right(1);
+        }
         self.last_rescored.set(true);
     }
 

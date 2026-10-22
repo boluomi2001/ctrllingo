@@ -72,7 +72,7 @@ impl TextService_Impl {
                     self.client_id.get(),
                     &preserved::GUID_PREDICT,
                     combo,
-                    "AI 联想（青简）",
+                    "AI 联想（译点）",
                 ) {
                     Ok(()) => {
                         self.predict_combo.set(Some(combo));

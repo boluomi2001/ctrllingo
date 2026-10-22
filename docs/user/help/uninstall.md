@@ -1,33 +1,25 @@
 ---
 title: 卸载
 order: 2
-description: 卸载青简、连同学习数据一起删除、只清除输入日志。
+description: 卸载 CtrlLingo 译点并了解卸载后保留的个人数据。
 ---
 
 ## macOS
 
-打开「终端」，执行：
-
-```sh
-/Library/Input\ Methods/Qingjian.app/Contents/Resources/uninstall.sh
-```
-
-以上只删除输入法本身，学习数据与设置保留，重新安装后仍可用。连同数据一起删除：
-
-```sh
-/Library/Input\ Methods/Qingjian.app/Contents/Resources/uninstall.sh --purge
-```
-
-此命令删除「~/Library/Application Support/Qingjian/」中的全部内容，包括导入的词库、学习到的词、输入日志、配置与密钥。
+CtrlLingo 0.1.0 不发布 macOS 版本。仓库中保留的 macOS 卸载步骤属于 Qingjian 上游继承资料，不适用于译点 Windows 安装包。
 
 ## Windows
 
-在「设置 → 应用 → 安装的应用」中找到「青简」并卸载，或使用开始菜单的「卸载青简」。
-正在运行的应用中的输入法组件需等这些应用关闭后才能完全清除，卸载程序会提示是否重启。
+从开始菜单打开「卸载 CtrlLingo」，或在 Windows「设置 → 应用 → 已安装的应用」中选择 CtrlLingo 并卸载。卸载需要管理员权限，并移除程序及 64 位、32 位 TSF 注册。
 
-学习数据与设置保留在「%APPDATA%\Qingjian」，重新安装后仍可用；连同数据一起删除时，卸载后手动删除该文件夹。
+宿主应用可能仍在内存中加载 TSF DLL。卸载后关闭并重新打开这些应用，必要时注销后重新登录，旧 DLL 才会完全退出。
 
-所有数据均为本机文件，删除后不可恢复，没有云端副本。
+卸载会保留个人配置、API 密钥、学习数据、统计和运行日志：
+
+- `%APPDATA%\CtrlLingo`：配置和个人数据。
+- `%LOCALAPPDATA%\CtrlLingo`：运行日志。
+
+如需一并删除这些个人文件，请在卸载后手动删除上述文件夹。此操作不可恢复。云服务商已收到的请求不受本地卸载影响；其保存规则由服务商决定。
 
 ## 只清除一部分
 

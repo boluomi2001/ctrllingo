@@ -217,7 +217,7 @@ impl Default for GeneralConfig {
             traditional_variant: TraditionalVariant::Off.key().to_owned(),
             traditional: None,
             log_level: LogLevel::default(),
-            input_log: true,
+            input_log: false,
             learning: true,
             system_text_replacements: true,
         }

@@ -51,7 +51,7 @@ impl Checker {
 
     /// 到点就查：开关开着、上次成功超过一天（或换了渠道）、上次尝试超过一小时、没有正在查的。
     pub fn poll(&self, config: &UpdateConfig) {
-        if !config.check {
+        if cfg!(windows) || !config.check {
             return;
         }
         let now = UpdateState::now();
@@ -69,6 +69,10 @@ impl Checker {
 
     /// 立刻查一次（「检查更新」按钮），不看间隔；已有正在查的就不重复起。
     pub fn check_now(&self, config: &UpdateConfig) {
+        // 独立发行版尚无自己的签名更新源，通过 GitHub Releases 手动更新。
+        if cfg!(windows) {
+            return;
+        }
         let Some(version) = self.version.clone() else {
             return;
         };
@@ -134,6 +138,9 @@ impl Checker {
         current: &str,
         config: &UpdateConfig,
     ) -> Option<Result<UpdateState, UpdateError>> {
+        if cfg!(windows) {
+            return None;
+        }
         let current = Self::effective_version(current);
         let version = Version::parse(&current).filter(|version| !version.is_dev())?;
         Some(check_once(
@@ -251,5 +258,18 @@ mod tests {
         let state = state("0.1.4", "stable");
         let on = config(true, UpdateChannel::Stable);
         assert!(Checker::available_in(&state, "0.1.3-dev-d893e1e", &on).is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_fork_does_not_query_upstream_even_if_enabled() {
+        let path = std::env::temp_dir().join("ctrllingo-update-disabled.json");
+        let on = config(true, UpdateChannel::Stable);
+        assert!(Checker::check_blocking(&path, "0.1.0", &on).is_none());
+        let checker = Checker::new(path, "0.1.0");
+        checker.poll(&on);
+        checker.check_now(&on);
+        assert_eq!(checker.attempted_at.load(Ordering::Relaxed), 0);
+        assert!(!checker.in_flight.load(Ordering::Relaxed));
     }
 }

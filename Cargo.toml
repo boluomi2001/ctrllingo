@@ -20,7 +20,7 @@ members = [
 version = "0.1.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/qingjian-team/qingjian"
+repository = "https://github.com/boluomi2001/ctrllingo"
 
 [workspace.lints.clippy]
 all = "warn"

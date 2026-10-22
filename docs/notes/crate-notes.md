@@ -167,6 +167,10 @@ Engine 侧在 `engine/rescoring/`：接了打分器就取 Viterbi 前 `RESCORE_P
 异步的（`with_async_sentence_scorer`，后台线程 `RescoreWorker`）查询不等模型：缺分的记下来，壳停键后 `request_rescoring`、`poll_rescoring` 到了再 `query` 一次。
 前文优先用壳给的应用光标前文（`set_rescoring_context`），没有用本会话最近 64 个上屏字符。CLI `--neural <导出目录>`（`--neural-weight` / `--neural-context` / `--neural-async`）。
 
+双语第四版增加长整句首选保护：原首选至少四音节（沿用 `ALTERNATE_MIN_SYLLABLES`），且原首选与新首选均由多个词组成时，新首选对原首选的综合优势不足 `MIN_RESCORE_GAIN = 1.0` nat 就将原首选移回第一，其余路径保持综合分顺序。短词与单词路径仍完全使用原综合分排序。使用同一按键条件下两条候选的相对分差，不比较神经分的绝对抬升，不使用可能破坏传递性的阈值排序比较器。该门槛是当前保守策略，未证明是总体准确率最优值；详见第四版验证记录。
+
+`engine/commit::sentence_words` 按实际选中的文本匹配前三条整句路径，不再只匹配第一条。原首选每个词转移记一份，备选整句记 `EXPLICIT_TRANSITION_WEIGHT = 2` 份；同缓冲区的自选接缝仍记两份。撤销沿用 `LastCommit.transitions` 中保存的实际份数；找不到匹配路径时不猜测分词。中英混输头段的原有单路径学习保持不变。
+
 P2C 教师强制打分 `CharScorer::score_p2c(keys, texts)`：前缀 `<eos> + 完整拼音 + <sep>`，只累加候选字符的 log 概率（不计 EOS），
 共享拼音前缀 KV，候选批量前向；超过上下文时报错，不截断拼音。CLI 实验入口 `--eval-p2c data/models/hanzhang-tongbian/hanzhang-tongbian-small.qjm --eval-text data/eval/sentences.tsv`，
 用 `--neural-weight` 调 λ。评测适配器与产品端 `P2cScorer` 同一条件，只是推理出错时直接终止（不静默回退到基线冒充成功）。
@@ -462,4 +466,9 @@ Unix socket 用共享长度前缀与 Frame（当前公共版本 9，与 `PROTOCO
 
 双语测试版的 Ctrl 单击由 TSF 松开回调发送 `KeyEvent::SWAP_TRANSLATION`（0x100，超出真实 Windows 虚拟键范围）；真实 Ctrl 按下原样放行，避免键盘状态更新时序导致重复调换。当前高亮有本地学习语言译词时直接调换，没有时才主动翻译；目标语言采用设置中所选的英语、日语、德语、西班牙语或越南语。编辑或高亮变化清掉意图并返回中文，尚未发出的手动请求取消，已发结果按序号作废。Ctrl 按需翻译与云联想开关独立；云联想缺省关闭，手动触发或启用自动请求均可，自动请求可能产生费用。按需翻译启用期间，释义兜底与生词本云翻译保持抑制。
 
-Windows `dispatch/cost` 在 Server 后台查询官方 `/user/balance`，所有会话共享在途余额查询；上次请求结束后再次打开卡片可重新查询，不定时轮询。余额查询限定官方域名、禁止重定向并设置超时，密钥不进入输出。费用面板取今日和自首次记账以来的累计汇总；账本异步读取并缓存两份卡片数据，按 `translate`、`compose`、`other` 统计真实 HTTP 尝试，重试逐次计数。旧账本无用途字段的记录按其他/旧记录展示。输入与输出 Token 相加时缓存命中不重复计入；pending、未知用量及人民币估算区间保持显式。卡片显示本输入法请求费用与账户余额两类信息，余额保留币种和最近成功时间，查询失败时旧值仍带原时间并标注失败。
+Windows `dispatch/cost` 在 Server 后台查询官方 `/user/balance`，所有会话共享在途余额查询；上次请求结束后再次打开卡片可重新查询，不定时轮询。余额查询限定官方域名、禁止重定向并设置超时，密钥不进入输出。费用面板取今日和自首次记账以来的累计汇总；账本异步读取并缓存两份卡片数据，按 `translate`、`compose`、`other` 统计真实 HTTP 尝试，重试逐次计数。旧账本无用途字段的记录按其他/旧记录展示。输入与输出 Token 相加时缓存命中不重复计入；pending、未知用量及人民币估算区间保持显式。卡片显示本输入法请求费用与账户余额两类信息；详细记录保留币种和最近成功时间，主面板隐藏成功时间，查询失败时旧值标注为上次余额。`ui/cost/mod.rs` 管理窗口及交互，`ui/cost/drawing.rs` 绘制紧凑的青绿卡片。
+
+
+## CtrlLingo Windows 独立发行
+
+0.1.0 使用独立 CLSID/profile、`\\.\pipe\ctrllingo`、`CtrlLingo` 用户目录与安装锁，产物入口是 `ctrllingo-server.exe` / `ctrllingo-settings.exe`；内部 crate 与TSF库名称保留上游标识。Windows自动更新已禁用，设置中的下载入口指向本项目 GitHub Releases。设置页、托盘和安装器使用用户提供的透明PNG所生成的品牌资产。首次运行默认不记录输入日志，API环境变量为 `CTRLLINGO_API_KEY`。发布构建入口见 `apps/windows/installer/README-CtrlLingo.md`。

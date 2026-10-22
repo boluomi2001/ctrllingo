@@ -9,13 +9,11 @@ use bamboo_slip::{
     BoxPaint, Button, Fill, FontSpec, FontWeight, RenderError, SettingRow, TextStyle, Ui, Visual,
     group, paragraph, section_title,
 };
-use qingjian_platform::UpdateChannel;
 
 use crate::message::Message;
 use crate::system::action::Action;
 use crate::view::Page;
-use crate::view::parts::actions::{actions, with_notice};
-use crate::view::parts::controls::{choice, toggle_info};
+use crate::view::parts::actions::actions;
 
 const LICENSE: &str = "自由软件，GPL-3.0-or-later 许可证：可以自由使用、修改与再分发，修改后分发须同样开源。官方渠道免费。";
 
@@ -49,73 +47,19 @@ const SOURCES: [(&str, &str); 8] = [
     ),
 ];
 
-const PRIVACY: &str = "青简不上传任何数据。开着「自动检查更新」时每天向官网读一次版本列表，请求不带任何标识。开着云联想或翻译时，光标附近的文字与拼音会发给你在「云服务」页填的 AI 服务商的服务器，不经过作者。输入日志只写在这台电脑上，可以在「高级」页关掉或清空。";
+const PRIVACY: &str = "本地拼音输入在电脑上处理。使用云联想或翻译时，相关文本、拼音或上下文会直接发送至你配置的 AI 服务商；费用与服务商隐私政策由你确认。API 密钥可能以明文保存在本机配置或环境变量中。输入日志只保存在本机，可在高级页关闭或清空。当前 Windows 版不连接青简更新服务，下载请查看本项目 GitHub Releases。译点基于 Qingjian，按 GPL-3.0-or-later 分发，不提供担保；源码、许可与数据来源见项目仓库及随包 NOTICE。";
 
 pub fn about(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
     let theme = &page.theme;
-    let update = &page.settings.config.update;
     let mut out = vec![header(ui, page)?];
-
-    let channel = choice(
-        ui,
-        page,
-        "update-channel",
-        &UpdateChannel::ALL,
-        update.channel,
-        UpdateChannel::label,
-        |value| Message::set("update", "channel", value.key()),
-    )?;
-    let running = page.settings.update.running();
-    let check = Button::new(if running {
-        "正在检查…"
-    } else {
-        "立即检查"
-    })
-    .disabled(running)
-    .build(ui, theme, "check-update", Message::CheckUpdate)?;
-    let mut rows = vec![
-        toggle_info(
-            ui,
-            page,
-            "自动检查更新",
-            Some("每天向官网读一次版本列表，有新版在这里和菜单里提示，不会自动下载安装"),
-            ("update", "check"),
-            update.check,
-            false,
-        )?,
-        SettingRow::new("渠道")
-            .info("测试版渠道还会提示 alpha / beta / rc 版本")
-            .control(channel)
-            .build(ui, theme)?,
-        with_notice(
-            ui,
-            page,
-            SettingRow::new("检查更新").control(check),
-            "update",
-        )?,
-    ];
-    if let Some(found) = page.settings.update.available(update) {
-        let title = format!("新版本 {}", found.version);
-        let download = Button::new("下载").primary().build(
-            ui,
-            theme,
-            "download",
-            Message::Run(Action::OpenDownload),
-        )?;
-        rows.push(SettingRow::new(&title).control(download).build(ui, theme)?);
-        let notes = found
-            .notes
-            .iter()
-            .take(6)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n");
-        if !notes.is_empty() {
-            rows.push(note(ui, page, None, &notes)?);
-        }
-    }
-    out.push(section_title(ui, theme, "更新")?);
-    out.push(group(ui, theme, &rows)?);
+    let download =
+        Button::new("查看 GitHub 发布").build(ui, theme, "download", Message::CheckUpdate)?;
+    out.push(section_title(ui, theme, "版本与更新")?);
+    let row = SettingRow::new("译点独立发布")
+        .info("基于青简二次开发；本版通过 GitHub Releases 手动更新")
+        .control(download)
+        .build(ui, theme)?;
+    out.push(group(ui, theme, &[row])?);
 
     out.push(section_title(ui, theme, "许可")?);
     let license = note(ui, page, None, LICENSE)?;
@@ -153,7 +97,7 @@ fn header(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let mut brand = Vec::new();
     if let Some(logo) = &page.settings.logo {
         let height = page.px(44.0);
-        let (width, natural) = logo.size();
+        let (width, natural) = (logo.width() as f32, logo.height() as f32);
         brand.push(ui.scene().node(
             Style {
                 size: Size {
@@ -163,10 +107,10 @@ fn header(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
                 ..Style::default()
             },
             Visual::Box(BoxPaint {
-                fill: Some(Fill::Svg {
-                    image: Arc::clone(logo),
+                fill: Some(Fill::Image {
+                    pixmap: Arc::clone(logo),
                     slice: None,
-                    px_per_unit: height / natural,
+                    pixels_per_px: natural / height,
                 }),
                 border: None,
                 radius: 0.0,
@@ -182,7 +126,7 @@ fn header(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let name = ui.scene().node(
         Style::default(),
         Visual::Text {
-            text: "青简".to_owned(),
+            text: "译点".to_owned(),
             style: TextStyle::new(font.scaled(page.scale), 22.0, theme.colors.text, 1.0),
         },
         &[],

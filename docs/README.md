@@ -2,6 +2,16 @@
 
 README.md 只介绍项目，所有技术内容放在这里，分四类：前三类是给开发者看的内部文档，`user/` 是给用户看的、官网渲染的文档。
 
+## CtrlLingo 文档索引与平台范围
+
+本项目是基于 Qingjian 的独立 Windows 二次开发版本。0.1.0 预发布目标为 Windows x64 主程序及 x86 TSF；macOS、Linux 等平台内容属于继承源码与上游参考资料，不代表译点已发布或验收相应平台。
+
+- [项目介绍与下载](../README.md)
+- [隐私说明](PRIVACY.md)
+- [上游来源与归属](UPSTREAM.md)
+- [0.1.0 发布验收边界](RELEASE-VALIDATION.md)
+- [Windows 安装包构建说明](../apps/windows/installer/README-CtrlLingo.md)
+
 | 目录 | 放什么 |
 |---|---|
 | [design/](design/) | 设计：现在是什么样、为什么这么定 |

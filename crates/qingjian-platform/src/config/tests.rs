@@ -9,13 +9,32 @@ fn template_parses_to_defaults() {
 }
 
 #[test]
+fn ctrllingo_installer_starts_without_input_logging_or_automatic_requests() {
+    let config: Config = toml::from_str(include_str!(
+        "../../../../apps/windows/installer/default-config.toml"
+    ))
+    .unwrap();
+    assert!(!config.general.input_log);
+    assert!(!config.predict.enabled);
+    assert!(!config.predict.automatic);
+    assert!(config.predict.sentence_translation);
+    assert!(!config.predict.vocabulary_translation);
+    assert!(config.shortcut.ctrl_swap_translation);
+    assert!(!config.update.check);
+    assert!(config.predict.api_key.is_none());
+    assert_eq!(config.predict.api_key_env, "CTRLLINGO_API_KEY");
+    assert!(!Config::default().general.input_log);
+    assert!(!Config::default().update.check);
+}
+
+#[test]
 fn partial_file_keeps_other_defaults() {
     let config: Config = toml::from_str("[predict]\nenabled = true\nlookback = 10\n").unwrap();
     assert!(config.predict.enabled);
     assert_eq!(config.predict.lookback, 10);
     assert_eq!(config.predict.model, "deepseek-flash");
     assert_eq!(config.predict.reasoning_effort, "none");
-    assert_eq!(config.predict.api_key_env, "QINGJIAN_API_KEY");
+    assert_eq!(config.predict.api_key_env, "CTRLLINGO_API_KEY");
     assert!(config.predict.automatic);
     assert_eq!(config.predict.debounce_ms, 300);
     assert_eq!(config.predict.min_interval_ms, 3000);

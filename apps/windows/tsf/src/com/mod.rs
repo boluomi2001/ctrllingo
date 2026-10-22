@@ -38,19 +38,19 @@ use windows::core::{BOOL, GUID, HRESULT, HSTRING, Interface};
 use qingjian_platform::protocol::SessionId;
 
 /// 文本服务的 CLSID。注册表 InprocServer32、TSF profile、[`DllGetClassObject`] 都认它。
-pub(crate) const CLSID_QINGJIAN: GUID = GUID::from_u128(0x7b8f5e61_5c3d_4ab2_9f81_60c6ab41d827);
+pub(crate) const CLSID_QINGJIAN: GUID = GUID::from_u128(0x7ed06982_4ef0_4dea_9dc8_a27e885cba67);
 
 /// [`CLSID_QINGJIAN`] 的注册表字符串形式，两者必须同步改。
-pub(crate) const CLSID_QINGJIAN_STR: &str = "{7B8F5E61-5C3D-4AB2-9F81-60C6AB41D827}";
+pub(crate) const CLSID_QINGJIAN_STR: &str = "{7ED06982-4EF0-4DEA-9DC8-A27E885CBA67}";
 
 /// 语言 profile 的 GUID。
-pub(crate) const GUID_PROFILE: GUID = GUID::from_u128(0xc283a716_17d6_4f93_8a52_724be8c90451);
+pub(crate) const GUID_PROFILE: GUID = GUID::from_u128(0xf8cb6c14_7be8_4146_9109_442bd375d651);
 
 /// zh-CN。
 pub(crate) const LANGID_ZH_CN: u16 = 0x0804;
 
 /// 输入法在系统里显示的名字。
-pub(crate) const SERVICE_DESCRIPTION: &str = "青简双语测试";
+pub(crate) const SERVICE_DESCRIPTION: &str = "译点 CtrlLingo";
 
 /// 存活的 COM 对象 + LockServer 计数，[`DllCanUnloadNow`] 据它判断能否卸载。
 static DLL_REFERENCES: AtomicIsize = AtomicIsize::new(0);

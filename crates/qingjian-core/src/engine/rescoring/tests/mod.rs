@@ -1,7 +1,12 @@
+//! 整句神经重打分测试。
+
 use std::time::{Duration, Instant};
 
 use super::*;
-use crate::sentence::SentenceWord;
+use crate::sentence::{SentenceScorer, SentenceWord};
+use qingjian_dictionary::Dictionary;
+
+mod policy;
 
 /// 这几个测试里路径共同解释的那段按键。
 const KEYS: &str = "kaifang";

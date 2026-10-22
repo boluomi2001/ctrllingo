@@ -1,25 +1,31 @@
 //! 常驻隐藏的用量与余额卡片；显示时不激活，避免输入焦点离开当前应用。
 
+mod drawing;
+
+use self::drawing::{
+    draw_badge, draw_brand_icon, draw_card, draw_document_icon, draw_globe_icon, draw_icon_tile,
+    draw_segment, draw_separator, draw_separator_vertical, draw_settings_icon, draw_text,
+    draw_text_sized, draw_token_icon, draw_wallet_icon, draw_wrapped,
+};
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    BeginPaint, CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS, CreateFontW, CreateSolidBrush,
-    DEFAULT_CHARSET, DT_LEFT, DT_NOPREFIX, DT_SINGLELINE, DT_VCENTER, DT_WORDBREAK, DeleteObject,
-    DrawTextW, EndPaint, FF_DONTCARE, FW_BOLD, FillRect, HDC, OUT_TT_PRECIS, PAINTSTRUCT,
-    SelectObject, SetBkMode, SetTextColor, TRANSPARENT, VARIABLE_PITCH,
+    BeginPaint, CreateSolidBrush, DeleteObject, EndPaint, FillRect, HDC, PAINTSTRUCT, SetBkMode,
+    SetTextColor, SetWindowRgn, TRANSPARENT,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, VK_ESCAPE, VK_LBUTTON, VK_RBUTTON,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow,
-    GetCursorPos, KillTimer, LoadCursorW, MA_NOACTIVATE, MF_STRING, SW_HIDE, SetTimer, ShowWindow,
-    TPM_RIGHTBUTTON, TrackPopupMenu, WM_COMMAND, WM_KEYDOWN, WM_LBUTTONDOWN, WM_MOUSEACTIVATE,
-    WM_PAINT, WM_PRINTCLIENT, WM_RBUTTONDOWN, WM_TIMER, WNDCLASSEXW, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    AppendMenuW, CS_DROPSHADOW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu,
+    DestroyWindow, GetCursorPos, KillTimer, LoadCursorW, MA_NOACTIVATE, MF_STRING, SW_HIDE,
+    SetTimer, ShowWindow, TPM_RIGHTBUTTON, TrackPopupMenu, WM_COMMAND, WM_KEYDOWN, WM_LBUTTONDOWN,
+    WM_MOUSEACTIVATE, WM_PAINT, WM_PRINTCLIENT, WM_RBUTTONDOWN, WM_TIMER, WNDCLASSEXW,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 use windows::core::{PCWSTR, Result, w};
 
@@ -27,15 +33,18 @@ use super::monitor::{dpi_near, work_area_near};
 use super::window_class::WindowClass;
 use crate::dispatch::{CostPanelView, StatusEvent};
 
-const CLASS_NAME: PCWSTR = w!("QingjianUsageCosts");
+const CLASS_NAME: PCWSTR = w!("CtrlLingoUsageCosts");
 const TIMER_ID: usize = 1;
 const TIMER_INTERVAL_MS: u32 = 50;
-const LOGICAL_WIDTH: i32 = 390;
-const LOGICAL_HEIGHT: i32 = 450;
+const LOGICAL_WIDTH: i32 = 360;
+const LOGICAL_HEIGHT: i32 = 428;
 const MARGIN: i32 = 20;
-const BLUE: COLORREF = COLORREF(0x00B77A35);
-const TEXT: COLORREF = COLORREF(0x00211C18);
-const MUTED: COLORREF = COLORREF(0x00746D66);
+const BACKGROUND: COLORREF = COLORREF(0x00F7FAF8);
+const CARD: COLORREF = COLORREF(0x00FFFFFF);
+const ACCENT: COLORREF = COLORREF(0x00787B08);
+const TEXT: COLORREF = COLORREF(0x00343C23);
+const MUTED: COLORREF = COLORREF(0x00716F64);
+const EDGE: COLORREF = COLORREF(0x00E5ECE8);
 static CLASS: WindowClass = WindowClass::new();
 
 struct Shared {
@@ -63,6 +72,7 @@ pub(crate) struct CostWindow {
 impl CostWindow {
     pub(crate) fn new(events: Rc<dyn Fn(StatusEvent)>) -> Result<Self> {
         CLASS.ensure(|| WNDCLASSEXW {
+            style: CS_DROPSHADOW,
             lpfnWndProc: Some(wndproc),
             hInstance: super::module_handle(),
             hCursor: unsafe {
@@ -76,7 +86,7 @@ impl CostWindow {
             CreateWindowExW(
                 WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
                 CLASS_NAME,
-                w!("青简·用量与余额"),
+                w!("译点·用量与余额"),
                 WS_POPUP,
                 0,
                 0,
@@ -130,6 +140,21 @@ impl CostWindow {
         let scale = |value: i32| value * scale_dpi as i32 / 96;
         let width = scale(LOGICAL_WIDTH).max(1);
         let height = scale(LOGICAL_HEIGHT).max(1);
+        let region = unsafe {
+            windows::Win32::Graphics::Gdi::CreateRoundRectRgn(
+                0,
+                0,
+                width + 1,
+                height + 1,
+                scale(18),
+                scale(18),
+            )
+        };
+        if !region.is_invalid() && unsafe { SetWindowRgn(self.hwnd, Some(region), true) } == 0 {
+            unsafe {
+                let _ = DeleteObject(region.into());
+            }
+        }
         let margin_x = scale(MARGIN).min((available_width - width).max(0) / 2);
         let margin_y = scale(MARGIN).min((available_height - height).max(0) / 2);
         let left = point
@@ -225,16 +250,16 @@ unsafe extern "system" fn wndproc(
                     x: (lparam.0 as u16 as i16) as i32 * 96 / scale_dpi,
                     y: ((lparam.0 >> 16) as u16 as i16) as i32 * 96 / scale_dpi,
                 };
-                if p.y < 48 && p.x >= 348 {
+                if p.y < 46 && (326..350).contains(&p.x) {
                     hide_window(hwnd, &shared);
-                } else if p.y < 48 && (250..300).contains(&p.x) {
+                } else if p.y < 46 && (218..266).contains(&p.x) {
                     shared.total.set(false);
                     (shared.events)(StatusEvent::PollUsageCosts { total: false });
                     unsafe {
                         let _ =
                             windows::Win32::Graphics::Gdi::InvalidateRect(Some(hwnd), None, true);
                     }
-                } else if p.y < 48 && (300..348).contains(&p.x) {
+                } else if p.y < 46 && (270..318).contains(&p.x) {
                     shared.total.set(true);
                     (shared.events)(StatusEvent::PollUsageCosts {
                         total: shared.total.get(),
@@ -243,20 +268,20 @@ unsafe extern "system" fn wndproc(
                         let _ =
                             windows::Win32::Graphics::Gdi::InvalidateRect(Some(hwnd), None, true);
                     }
-                } else if (330..360).contains(&p.y) {
+                } else if (348..386).contains(&p.y) && (18..342).contains(&p.x) {
                     show_language_menu(hwnd, &shared);
-                } else if p.y > 400 && p.x < 190 {
+                } else if p.y > 390 && p.x < 180 {
                     let text = shared.view.borrow().details.clone();
                     unsafe {
                         let _ = windows::Win32::UI::WindowsAndMessaging::MessageBoxW(
                             Some(hwnd),
                             &windows::core::HSTRING::from(text),
-                            &windows::core::HSTRING::from("青简·详细记录"),
+                            &windows::core::HSTRING::from("译点·详细记录"),
                             windows::Win32::UI::WindowsAndMessaging::MB_OK
                                 | windows::Win32::UI::WindowsAndMessaging::MB_ICONINFORMATION,
                         );
                     }
-                } else if p.y > 400 {
+                } else if p.y > 390 && p.x >= 180 {
                     super::open_settings();
                 }
                 LRESULT(0)
@@ -364,7 +389,7 @@ fn paint_content(hdc: HDC, shared: &Shared) {
         right: scale(LOGICAL_WIDTH),
         bottom: scale(LOGICAL_HEIGHT),
     };
-    let background = unsafe { CreateSolidBrush(COLORREF(0x00FFFFFF)) };
+    let background = unsafe { CreateSolidBrush(BACKGROUND) };
     unsafe {
         let _ = FillRect(hdc, &rect, background);
         let _ = DeleteObject(background.into());
@@ -372,209 +397,175 @@ fn paint_content(hdc: HDC, shared: &Shared) {
         let _ = SetTextColor(hdc, TEXT);
     }
     let data = shared.view.borrow();
-    draw_text(
+    let width = LOGICAL_WIDTH;
+    draw_card(hdc, scale, 12, 50, width - 12, 159);
+    draw_card(hdc, scale, 12, 165, width - 12, 242);
+    draw_card(hdc, scale, 12, 248, width - 12, 342);
+    draw_card(hdc, scale, 12, 348, width - 12, 384);
+    draw_brand_icon(hdc, scale);
+    draw_text_sized(
         scale_dpi,
         hdc,
-        "青简·用量与余额",
-        (scale(20), scale(14), scale(220)),
+        "译点·用量与余额",
+        (scale(40), scale(12), scale(170)),
         true,
         TEXT,
+        17,
     );
-    draw_text(
-        scale_dpi,
-        hdc,
-        "今日",
-        (scale(256), scale(18), scale(42)),
-        false,
-        if shared.total.get() { MUTED } else { BLUE },
-    );
-    draw_text(
-        scale_dpi,
-        hdc,
-        "累计",
-        (scale(302), scale(18), scale(42)),
-        false,
-        if shared.total.get() { BLUE } else { MUTED },
-    );
+    draw_segment(hdc, scale_dpi, scale, 218, "今日", !shared.total.get());
+    draw_segment(hdc, scale_dpi, scale, 270, "累计", shared.total.get());
     draw_text(
         scale_dpi,
         hdc,
         "×",
-        (scale(354), scale(16), scale(24)),
+        (scale(329), scale(10), scale(20)),
         true,
         MUTED,
     );
-    draw_text(
+
+    draw_icon_tile(hdc, scale, 26, 61);
+    draw_token_icon(hdc, scale);
+    draw_text_sized(
         scale_dpi,
         hdc,
         "本输入法已用 token",
-        (scale(20), scale(60), scale(190)),
-        false,
-        MUTED,
+        (scale(82), scale(61), scale(140)),
+        true,
+        TEXT,
+        13,
     );
-    draw_text(
+    draw_badge(hdc, scale, 231, 60, 337, 92);
+    let token_font_size = if data.tokens.chars().count() > 12 {
+        12
+    } else if data.tokens.chars().count() > 8 {
+        14
+    } else {
+        18
+    };
+    draw_text_sized(
         scale_dpi,
         hdc,
         &data.tokens,
-        (scale(224), scale(60), scale(146)),
+        (scale(237), scale(64), scale(94)),
         true,
-        TEXT,
+        ACCENT,
+        token_font_size,
     );
-    let fields = [
-        (data.token_detail.as_str(), 20, 94, 370, 141),
-        (data.amount.as_str(), 20, 177, 370, 220),
-        (data.balance.as_str(), 20, 254, 370, 281),
-        (data.requests.as_str(), 20, 292, 370, 330),
-        (data.updated.as_str(), 20, 372, 370, 404),
-    ];
-    for (value, left, top, right, bottom) in fields {
-        let mut value_rect = RECT {
-            left: scale(left),
-            top: scale(top),
-            right: scale(right),
-            bottom: scale(bottom),
-        };
-        draw_wrapped(scale_dpi, hdc, value, &mut value_rect, TEXT);
-    }
+    let mut token_rect = RECT {
+        left: scale(82),
+        top: scale(99),
+        right: scale(337),
+        bottom: scale(148),
+    };
+    draw_wrapped(scale_dpi, hdc, &data.token_detail, &mut token_rect, TEXT);
+
+    draw_icon_tile(hdc, scale, 26, 177);
+    draw_text(
+        scale_dpi,
+        hdc,
+        "¥",
+        (scale(32), scale(183), scale(30)),
+        true,
+        ACCENT,
+    );
     draw_text(
         scale_dpi,
         hdc,
         "本输入法估算花费",
-        (scale(20), scale(147), scale(340)),
+        (scale(82), scale(176), scale(250)),
+        true,
+        TEXT,
+    );
+    let mut amount_rect = RECT {
+        left: scale(82),
+        top: scale(200),
+        right: scale(337),
+        bottom: scale(233),
+    };
+    draw_wrapped(scale_dpi, hdc, &data.amount, &mut amount_rect, TEXT);
+
+    draw_icon_tile(hdc, scale, 26, 260);
+    draw_wallet_icon(hdc, scale);
+    draw_text_sized(
+        scale_dpi,
+        hdc,
+        "DeepSeek 账户余额",
+        (scale(82), scale(259), scale(142)),
+        false,
+        TEXT,
+        13,
+    );
+    let mut balance_rect = RECT {
+        left: scale(82),
+        top: scale(280),
+        right: scale(337),
+        bottom: scale(305),
+    };
+    draw_wrapped(scale_dpi, hdc, &data.balance, &mut balance_rect, ACCENT);
+    let status = if data.updated.contains("更新失败") && !data.balance.is_empty() {
+        "更新失败·上次余额"
+    } else if data.updated.contains("失败") {
+        "查询失败"
+    } else if data.updated.contains("更新中") {
+        "查询中…"
+    } else {
+        ""
+    };
+    draw_text_sized(
+        scale_dpi,
+        hdc,
+        status,
+        (scale(228), scale(261), scale(109)),
         false,
         MUTED,
+        11,
+    );
+    draw_separator(hdc, scale, 82, 308, 337);
+    draw_document_icon(hdc, scale, 26, 314);
+    let mut request_rect = RECT {
+        left: scale(82),
+        top: scale(312),
+        right: scale(337),
+        bottom: scale(339),
+    };
+    draw_wrapped(scale_dpi, hdc, &data.requests, &mut request_rect, TEXT);
+    draw_globe_icon(hdc, scale);
+    draw_text(
+        scale_dpi,
+        hdc,
+        "目标语言：",
+        (scale(72), scale(356), scale(90)),
+        false,
+        TEXT,
     );
     draw_text(
         scale_dpi,
         hdc,
-        "DeepSeek 账户剩余",
-        (scale(20), scale(223), scale(340)),
-        false,
-        MUTED,
+        &format!("{}  ▾", data.target_language),
+        (scale(162), scale(356), scale(165)),
+        true,
+        ACCENT,
     );
-    draw_text(
-        scale_dpi,
-        hdc,
-        &format!("目标语言：{}  ▾", data.target_language),
-        (scale(20), scale(334), scale(340)),
-        false,
-        BLUE,
-    );
+    draw_separator(hdc, scale, 20, 390, width - 20);
+    draw_document_icon(hdc, scale, 20, 394);
     draw_text(
         scale_dpi,
         hdc,
         "详细记录",
-        (scale(MARGIN), scale(410), scale(105)),
+        (scale(50), scale(396), scale(115)),
         false,
-        BLUE,
+        ACCENT,
     );
+    draw_separator_vertical(hdc, scale, 180, 396, 416);
+    draw_settings_icon(hdc, scale);
     draw_text(
         scale_dpi,
         hdc,
         "设置",
-        (scale(315), scale(410), scale(50)),
+        (scale(225), scale(396), scale(70)),
         false,
-        BLUE,
+        ACCENT,
     );
-}
-
-fn draw_text(
-    scale_dpi: u32,
-    hdc: HDC,
-    text: &str,
-    bounds: (i32, i32, i32),
-    bold: bool,
-    color: COLORREF,
-) {
-    if text.is_empty() {
-        return;
-    }
-    let (x, y, width) = bounds;
-    let height = (15 * scale_dpi as i32 / 96).max(1);
-    let font = unsafe {
-        CreateFontW(
-            -height,
-            0,
-            0,
-            0,
-            if bold { FW_BOLD.0 as i32 } else { 400 },
-            0,
-            0,
-            0,
-            DEFAULT_CHARSET,
-            OUT_TT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            (VARIABLE_PITCH.0 | FF_DONTCARE.0) as u32,
-            w!("Microsoft YaHei UI"),
-        )
-    };
-    if font.is_invalid() {
-        return;
-    }
-    let old = unsafe { SelectObject(hdc, font.into()) };
-    unsafe {
-        let _ = SetTextColor(hdc, color);
-    }
-    let mut rect = RECT {
-        left: x,
-        top: y,
-        right: x + width,
-        bottom: y + height * 2,
-    };
-    let mut wide: Vec<u16> = text.encode_utf16().collect();
-    unsafe {
-        let _ = DrawTextW(
-            hdc,
-            &mut wide,
-            &mut rect,
-            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
-        );
-    }
-    unsafe {
-        let _ = SelectObject(hdc, old);
-        let _ = DeleteObject(font.into());
-    }
-}
-
-fn draw_wrapped(scale_dpi: u32, hdc: HDC, text: &str, rect: &mut RECT, color: COLORREF) {
-    if text.is_empty() {
-        return;
-    }
-    let height = (14 * scale_dpi as i32 / 96).max(1);
-    let font = unsafe {
-        CreateFontW(
-            -height,
-            0,
-            0,
-            0,
-            400,
-            0,
-            0,
-            0,
-            DEFAULT_CHARSET,
-            OUT_TT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
-            (VARIABLE_PITCH.0 | FF_DONTCARE.0) as u32,
-            w!("Microsoft YaHei UI"),
-        )
-    };
-    if font.is_invalid() {
-        return;
-    }
-    let old = unsafe { SelectObject(hdc, font.into()) };
-    unsafe {
-        let _ = SetTextColor(hdc, color);
-    }
-    let mut wide: Vec<u16> = text.encode_utf16().collect();
-    unsafe {
-        let _ = DrawTextW(hdc, &mut wide, rect, DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
-    }
-    unsafe {
-        let _ = SelectObject(hdc, old);
-        let _ = DeleteObject(font.into());
-    }
 }
 
 #[cfg(test)]

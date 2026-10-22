@@ -123,7 +123,7 @@ fn brand(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let mut children = Vec::new();
     if let Some(logo) = &page.settings.logo {
         let height = page.px(24.0);
-        let (width, natural) = logo.size();
+        let (width, natural) = (logo.width() as f32, logo.height() as f32);
         children.push(ui.scene().node(
             Style {
                 size: Size {
@@ -133,10 +133,10 @@ fn brand(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
                 ..Style::default()
             },
             Visual::Box(BoxPaint {
-                fill: Some(Fill::Svg {
-                    image: Arc::clone(logo),
+                fill: Some(Fill::Image {
+                    pixmap: Arc::clone(logo),
                     slice: None,
-                    px_per_unit: height / natural,
+                    pixels_per_px: natural / height,
                 }),
                 border: None,
                 radius: 0.0,
@@ -152,7 +152,7 @@ fn brand(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     children.push(ui.scene().node(
         Style::default(),
         Visual::Text {
-            text: "青简".to_owned(),
+            text: "译点".to_owned(),
             style: TextStyle::new(font.scaled(page.scale), 19.0, page.theme.colors.text, 1.0),
         },
         &[],

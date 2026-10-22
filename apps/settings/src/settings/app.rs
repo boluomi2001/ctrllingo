@@ -149,7 +149,11 @@ impl App for Settings {
                 }
             }
             Message::CheckUpdate => {
-                if !self.update.running() {
+                if cfg!(windows) {
+                    self.notice = Action::OpenDownload
+                        .run(&self.path)
+                        .map(|text| ("update", text));
+                } else if !self.update.running() {
                     let started = self.update.start(&self.config.update, self.waker.clone());
                     self.notice = Some((
                         "update",

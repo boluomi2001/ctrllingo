@@ -1,0 +1,22 @@
+CtrlLingo · 译点
+Independent Windows distribution maintained by boluomi2001.
+Project: https://github.com/boluomi2001/ctrllingo
+
+Based on Qingjian by the Qingjian authors and contributors:
+https://github.com/qingjian-team/qingjian
+Upstream base: c97ff2b61933d6fcd845ee4f4f470faf3ea83bf6
+
+This is a modified distribution, not an official Qingjian release.
+Changes include Ctrl-triggered multilingual sentence translation, usage and cost
+presentation, conservative sentence rescoring, alternate-sentence learning, and
+the independent CtrlLingo Windows identity, branding and distribution materials.
+The inherited input engine and other upstream work remain attributed to their
+original authors. Original copyright and license notices are retained.
+
+The application is distributed under GPL-3.0-or-later without warranty; see LICENSE.
+Individual libraries, datasets and models retain their own license terms and
+attribution requirements. See assets/*/README*, component LICENSE* files and
+the release's THIRD-PARTY-NOTICES.md and licenses directory.
+
+The CtrlLingo brand image was supplied by the project owner. It is provided for
+identification of this project; it does not imply endorsement by upstream.

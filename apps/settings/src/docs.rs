@@ -3,7 +3,7 @@
 
 use crate::page_id::PageId;
 
-const DOCS_URL: &str = "https://qingjian.app/docs";
+const DOCS_URL: &str = "https://github.com/boluomi2001/ctrllingo/blob/main/docs/user";
 
 /// 设置窗口这一页的说明，没有更专门的文档时 ⓘ 指到这里。
 const SETTINGS: &str = "settings/preferences";
@@ -236,11 +236,10 @@ const LINKS: &[(PageId, &str, &str, &str)] = &[
     ),
     (
         PageId::About,
-        "自动检查更新",
+        "译点独立发布",
         "help/data-and-logs",
         "检查更新",
     ),
-    (PageId::About, "渠道", "help/data-and-logs", "检查更新"),
 ];
 
 /// `page` 页上标题为 `title` 那一行的 ⓘ 链接。
@@ -253,9 +252,9 @@ pub fn link(page: PageId, title: &str) -> Option<String> {
 
 fn url(doc: &str, heading: &str) -> String {
     if heading.is_empty() {
-        return format!("{DOCS_URL}/{doc}");
+        return format!("{DOCS_URL}/{doc}.md");
     }
-    format!("{DOCS_URL}/{doc}#{}", encode(&heading_id(heading)))
+    format!("{DOCS_URL}/{doc}.md#{}", encode(&heading_id(heading)))
 }
 
 /// 同官网：首尾去空白，空白与 URL 保留字符的连续段换成一个连字符，中文原样留着。
@@ -360,7 +359,7 @@ mod tests {
         assert_eq!(heading_id("混输（五笔 + 拼音）"), "混输（五笔-拼音）");
         assert_eq!(
             url("cloud/index", "开启"),
-            "https://qingjian.app/docs/cloud/index#%E5%BC%80%E5%90%AF"
+            "https://github.com/boluomi2001/ctrllingo/blob/main/docs/user/cloud/index.md#%E5%BC%80%E5%90%AF"
         );
     }
 }
