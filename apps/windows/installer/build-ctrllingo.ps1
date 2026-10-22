@@ -268,7 +268,7 @@ if (-not (Test-Path -LiteralPath $config)) {
     $iscc = $env:CTRLLINGO_ISCC
     if (-not $iscc) { $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source }
     if (-not $iscc) { throw '找不到 ISCC.exe；请通过 CTRLLINGO_ISCC 指定 Inno Setup 编译器。' }
-    Invoke-CheckedNative $iscc @("/DPackageRoot=`"$stage`"", "/DOutputDirectory=`"$outputRoot`"", $iss) 'Inno Setup 编译'
+    Invoke-CheckedNative $iscc @("/DPackageRoot=$stage", "/DOutputDirectory=$outputRoot", $iss) 'Inno Setup 编译'
 
     $setup = Join-Path $outputRoot 'CtrlLingo-0.1.0-windows-x64-setup.exe'
     if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw "ISCC 没有生成安装包：$setup" }
