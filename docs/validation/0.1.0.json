@@ -1,0 +1,59 @@
+{
+  "version": "0.1.0",
+  "date": "2026-10-23",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "implementation_commit": "c287b0b91805a16a58fc40c9dee1967e25a5ebd0",
+  "rust": "1.96.0",
+  "targets": [
+    "x86_64-pc-windows-gnu",
+    "i686-pc-windows-gnu"
+  ],
+  "tests": {
+    "passed": 793,
+    "failed": 0,
+    "suites": 26
+  },
+  "clippy": "passed with -D warnings",
+  "languages": [
+    "en",
+    "ja",
+    "es",
+    "vi",
+    "de"
+  ],
+  "translation_checks": [
+    "no automatic request while typing",
+    "stale response discarded",
+    "waiting Space preserves composition",
+    "Unicode translation committed through protocol",
+    "cache hit avoids duplicate HTTP",
+    "usage ledger counts cached input within input tokens"
+  ],
+  "ui_checks": [
+    "staged_server_pid",
+    "usage_window_pid_and_visibility",
+    "today_coordinate_message_and_screenshot",
+    "cumulative_coordinate_message_and_screenshot",
+    "native_language_popup",
+    "select_japanese_and_persist_isolated_config",
+    "details_dialog_appears",
+    "details_dialog_closed",
+    "close_button_hides_and_tray_callback_reopens",
+    "settings_process_and_real_window"
+  ],
+  "dll_load_and_exports": {
+    "x64": true,
+    "x86": true
+  },
+  "sha256": {
+    "server": "25799fad4cccaa4f4f60f35e1ace55e79c2d552d253c9f7a687c25ea7fd22f12",
+    "settings": "a033daac568a827eaa16e20894c256019055cc1af18fd624ab29f3b0cb64fe38",
+    "tsf_x64": "5871b85c1383bdfd6804da25af79ed1f9d31a9b469e8162f9707bf5647e84cbe",
+    "tsf_x86": "a18074ca57c4a86fc446ef265d18a7d6a4607c0830d32d53ed70a29fd1cd0b12"
+  },
+  "external_translation_service_used": false,
+  "real_api_verified": false,
+  "installed_or_registered": false,
+  "real_tsf_verified": false,
+  "release_status": "prerelease pending native installation, upgrade, uninstall and application acceptance"
+}

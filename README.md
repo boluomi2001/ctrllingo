@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/版本-0.1.0-orange" alt="Version 0.1.0">
 </p>
 
-CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。当前准备发布 **0.1.0 预发布版**，发布目标为 Windows x64 主程序，并附带供 32 位应用使用的 x86 TSF 组件。它尚未完成原生安装、升级、卸载和真实 TSF 上屏验收，因此不称为稳定版。
+CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。当前发布 **0.1.0 预发布版**，发布目标为 Windows x64 主程序，并附带供 32 位应用使用的 x86 TSF 组件。它尚未完成原生安装、升级、卸载和真实 TSF 上屏验收，因此不称为稳定版。
 
 ## 功能
 
@@ -38,6 +38,12 @@ CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简�
 卸载可从开始菜单的“卸载 CtrlLingo”入口，或 Windows“设置 → 应用”中启动。卸载会移除程序和 TSF 注册，但保留用户配置、密钥、学习记录、统计和运行日志；如需删除个人数据，请在卸载后另行删除 `%APPDATA%\CtrlLingo` 与 `%LOCALAPPDATA%\CtrlLingo`。
 
 安装目录为 `%ProgramFiles%\CtrlLingo`，后台进程和设置程序分别命名为 `ctrllingo-server.exe` 与 `ctrllingo-settings.exe`；Windows 输入法列表和托盘显示“译点 CtrlLingo”，设置窗口名为“译点设置”。配置、密钥和学习数据位于 `%APPDATA%\CtrlLingo`；运行日志位于 `%LOCALAPPDATA%\CtrlLingo\logs`；机器级 TSF 图标位于 `%ProgramData%\CtrlLingo`。
+
+## 界面预览
+
+<p><img src="docs/screenshots/usage-local-mock.png" alt="译点费用窗口，本地模拟服务数据" width="300"></p>
+
+费用窗口来自实际程序与本地模拟服务，未使用真实账户；设置程序预览见[关于页截图](docs/screenshots/settings-about.png)。
 
 ## 费用估算与账户余额
 
@@ -76,3 +82,5 @@ CtrlLingo 是由 `boluomi2001` 维护的独立 Windows 二次开发版本，基�
 - [报告缺陷或提出建议](https://github.com/boluomi2001/ctrllingo/issues/new/choose)
 - [安全政策](SECURITY.md)（请私下报告安全问题）
 - [支持说明](SUPPORT.md) · [贡献指南](CONTRIBUTING.md)
+
+本地相关回归 793 项通过，严格代码检查和五语言模拟验收通过；验证范围与未完成项见[发布验收记录](docs/RELEASE-VALIDATION.md)。这不替代原生安装和真实 TSF 验收。
