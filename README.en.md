@@ -76,3 +76,5 @@ Code is provided under [GPL-3.0-or-later](LICENSE). Bundled data and some compon
 - [Report a bug or suggest a feature](https://github.com/boluomi2001/ctrllingo/issues/new/choose)
 - [Security policy](SECURITY.md) (report security issues privately)
 - [Support](SUPPORT.md) · [Contributing](CONTRIBUTING.md)
+
+Dependency audit currently fails on three inherited ZIP extraction advisories. This prerelease does not claim a clean security audit; see [known issues](docs/KNOWN-ISSUES.md).

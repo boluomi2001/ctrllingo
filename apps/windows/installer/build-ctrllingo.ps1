@@ -164,11 +164,13 @@ if (-not (Test-Path -LiteralPath $config)) {
         Copy-RequiredFile (Join-Path $repo "assets\$relative") (Join-Path $payload (Join-Path 'assets' $relative))
     }
 
-    foreach ($relative in @('LICENSE', 'NOTICE', 'README.md')) {
+    foreach ($relative in @('LICENSE', 'NOTICE', 'README.md', 'SECURITY.md', 'SUPPORT.md')) {
         Copy-RequiredFile (Join-Path $repo $relative) (Join-Path $documentation (Split-Path -Leaf $relative))
     }
     Copy-RequiredFile (Join-Path $repo 'docs\PRIVACY.md') (Join-Path $documentation 'docs\PRIVACY.md')
     Copy-RequiredFile (Join-Path $repo 'docs\RELEASE-VALIDATION.md') (Join-Path $documentation 'docs\RELEASE-VALIDATION.md')
+    Copy-RequiredFile (Join-Path $repo 'docs\KNOWN-ISSUES.md') (Join-Path $documentation 'docs\KNOWN-ISSUES.md')
+    Copy-RequiredFile (Join-Path $repo 'docs\UPSTREAM.md') (Join-Path $documentation 'docs\UPSTREAM.md')
     $assetNotices = Get-ChildItem -LiteralPath (Join-Path $repo 'assets') -File -Recurse | Where-Object { $_.Name -match '^(README|LICENSE|COPYING|NOTICE)' }
     foreach ($notice in $assetNotices) {
         $relative = $notice.FullName.Substring((Join-Path $repo 'assets').Length + 1)

@@ -84,3 +84,5 @@ CtrlLingo 是由 `boluomi2001` 维护的独立 Windows 二次开发版本，基�
 - [支持说明](SUPPORT.md) · [贡献指南](CONTRIBUTING.md)
 
 本地相关回归 793 项通过，严格代码检查和五语言模拟验收通过；验证范围与未完成项见[发布验收记录](docs/RELEASE-VALIDATION.md)。这不替代原生安装和真实 TSF 验收。
+
+依赖安全审查目前未通过：模型推理库间接依赖的 ZIP 库有三条公开安全公告。静态检查未发现本应用调用相关解包入口；尚未排除全部风险。详情与正式版门槛见[已知问题](docs/KNOWN-ISSUES.md)。
