@@ -1,6 +1,6 @@
 # 安全政策
 
-CtrlLingo · 译点 0.1.0 将作为预发布版本提供，直到维护者完成原生安装、升级、卸载和真实 TSF 上屏验收。安全问题请通过 GitHub 的[私密漏洞报告入口](https://github.com/boluomi2001/ctrllingo/security/advisories/new)向维护者报告。请勿在公开 issue、讨论区或社交媒体发布可直接利用的漏洞细节、利用代码、他人数据或 API 密钥。
+CtrlLingo · 译点 0.1.0 当前为预发布版本。已知依赖安全问题修复并完成发布检查前，不作为稳定版提供。安全问题请通过 GitHub 的[私密漏洞报告入口](https://github.com/boluomi2001/ctrllingo/security/advisories/new)向维护者报告。请勿在公开 issue、讨论区或社交媒体发布可直接利用的漏洞细节、利用代码、他人数据或 API 密钥。
 
 报告中请尽量提供：受影响版本、Windows 版本、必要的复现步骤、影响范围，以及你认为可行的缓解办法。请移除用户名、文件路径、输入内容、访问令牌和其他个人信息。不要附带真实 API 密钥、完整配置文件或原始输入日志。
 

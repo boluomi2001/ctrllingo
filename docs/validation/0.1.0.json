@@ -55,5 +55,13 @@
   "real_api_verified": false,
   "installed_or_registered": false,
   "real_tsf_verified": false,
-  "release_status": "prerelease pending native installation, upgrade, uninstall and application acceptance"
+  "user_acceptance": {
+    "date": "2026-10-23",
+    "source": "chat user feedback",
+    "status": "passed as reported",
+    "statement": "我测试完了，所有功能都是正常的",
+    "detailed_environment": null
+  },
+  "agent_check_fields_note": "real_api_verified, installed_or_registered, and real_tsf_verified describe agent-run checks; user_acceptance records the separate user report.",
+  "release_status": "prerelease pending dependency security remediation and remaining unrecorded compatibility/lifecycle checks"
 }

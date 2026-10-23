@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/version-0.1.0-orange" alt="Version 0.1.0">
 </p>
 
-CtrlLingo · 译点 is an independent Windows fork based on the Qingjian pinyin input method. Version **0.1.0** is being prepared as a prerelease for Windows x64, with an x86 TSF component for 32-bit applications. Native installation, upgrade, uninstall, and real TSF typing acceptance are still pending, so this is not described as a stable release.
+CtrlLingo · 译点 is an independent Windows fork based on the Qingjian pinyin input method. Version **0.1.0** is a prerelease for Windows x64, with an x86 TSF component for 32-bit applications. On 2026-10-23, the user reported that all features worked in their testing. The dependency security review has not passed, so this remains a prerelease. See the [acceptance record](docs/RELEASE-VALIDATION.md) for verification scope.
 
 ## Features
 
@@ -29,7 +29,7 @@ If no compatible endpoint and API key are configured, no cloud translation will 
 
 ## Download, installation, and uninstall
 
-Download `CtrlLingo-0.1.0-windows-x64-setup.exe` from [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases). Version 0.1.0 will be published as a prerelease until native installation, upgrade, uninstall, and real TSF typing acceptance are complete. The installer is unsigned. Check the release's `SHA256SUMS.txt`; do not disable Windows security protections to bypass a prompt.
+Download `CtrlLingo-0.1.0-windows-x64-setup.exe` from [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases). Version 0.1.0 remains a prerelease; release conditions and known issues are listed in the [acceptance record](docs/RELEASE-VALIDATION.md). The installer is unsigned. Check the release's `SHA256SUMS.txt`; do not disable Windows security protections to bypass a prompt.
 
 Run the installer and follow its prompts. It registers both x64 and x86 TSF components. If an application was already open, reopen it before selecting the input method, or sign out and back in.
 
@@ -77,4 +77,4 @@ Code is provided under [GPL-3.0-or-later](LICENSE). Bundled data and some compon
 - [Security policy](SECURITY.md) (report security issues privately)
 - [Support](SUPPORT.md) · [Contributing](CONTRIBUTING.md)
 
-Dependency audit currently fails on three inherited ZIP extraction advisories. This prerelease does not claim a clean security audit; see [known issues](docs/KNOWN-ISSUES.md).
+Dependency audit currently fails on three inherited ZIP extraction advisories. User-reported feature testing does not change that result; this prerelease does not claim a clean security audit. See [known issues](docs/KNOWN-ISSUES.md) and the [acceptance record](docs/RELEASE-VALIDATION.md) for evidence boundaries.

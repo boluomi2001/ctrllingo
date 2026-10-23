@@ -10,4 +10,4 @@
 - 提供 x64 主程序与设置、x64/x86 TSF、安装器、对应源码及 SHA-256 清单。
 - 输入日志默认关闭；Windows 上游更新检查禁用，更新通过本项目 GitHub Releases 手动进行。
 
-未完成的原生安装/升级/卸载、真实应用 TSF 上屏与真实服务验收详见 [发布验收记录](docs/RELEASE-VALIDATION.md)。本次发布保留 prerelease 状态。
+2026-10-23 用户功能验收通过（根据用户反馈记录）；依赖安全审查仍未通过，本次发布保留 prerelease 状态。验证范围与待补充记录详见[发布验收记录](docs/RELEASE-VALIDATION.md)。

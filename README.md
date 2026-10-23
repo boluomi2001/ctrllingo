@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/版本-0.1.0-orange" alt="Version 0.1.0">
 </p>
 
-CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。当前发布 **0.1.0 预发布版**，发布目标为 Windows x64 主程序，并附带供 32 位应用使用的 x86 TSF 组件。它尚未完成原生安装、升级、卸载和真实 TSF 上屏验收，因此不称为稳定版。
+CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。当前发布 **0.1.0 预发布版**，发布目标为 Windows x64 主程序，并附带供 32 位应用使用的 x86 TSF 组件。2026-10-23 已收到功能试用全部正常的用户反馈；依赖安全审查尚未通过，因此仍保留预发布状态。验证范围见[发布验收记录](docs/RELEASE-VALIDATION.md)。
 
 ## 功能
 
@@ -31,7 +31,7 @@ CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简�
 
 ## 下载、安装与卸载
 
-从 [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases) 下载 `CtrlLingo-0.1.0-windows-x64-setup.exe`。0.1.0 将以预发布版本提供，直到原生安装、升级、卸载和真实 TSF 上屏验收完成。当前没有签名；请核对发布页提供的 `SHA256SUMS.txt`，不要关闭 Windows 安全保护来绕过提示。
+从 [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases) 下载 `CtrlLingo-0.1.0-windows-x64-setup.exe`。0.1.0 仍以预发布版本提供，发布条件与已知问题见[验收记录](docs/RELEASE-VALIDATION.md)。当前没有签名；请核对发布页提供的 `SHA256SUMS.txt`，不要关闭 Windows 安全保护来绕过提示。
 
 运行安装包并按提示完成安装。安装程序会注册 x64 与 x86 TSF；首次切换输入法时，如果应用已经打开，请重新打开应用，或注销后重新登录。
 
@@ -83,6 +83,6 @@ CtrlLingo 是由 `boluomi2001` 维护的独立 Windows 二次开发版本，基�
 - [安全政策](SECURITY.md)（请私下报告安全问题）
 - [支持说明](SUPPORT.md) · [贡献指南](CONTRIBUTING.md)
 
-本地相关回归 793 项通过，严格代码检查和五语言模拟验收通过；验证范围与未完成项见[发布验收记录](docs/RELEASE-VALIDATION.md)。这不替代原生安装和真实 TSF 验收。
+本地相关回归 793 项通过，严格代码检查和五语言模拟验收通过；用户另报告功能试用正常。验证来源、范围与未单独记录项见[发布验收记录](docs/RELEASE-VALIDATION.md)。
 
 依赖安全审查目前未通过：模型推理库间接依赖的 ZIP 库有三条公开安全公告。静态检查未发现本应用调用相关解包入口；尚未排除全部风险。详情与正式版门槛见[已知问题](docs/KNOWN-ISSUES.md)。
