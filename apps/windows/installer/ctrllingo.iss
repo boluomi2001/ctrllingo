@@ -1,6 +1,6 @@
 ﻿; CtrlLingo · 译点 Windows TSF installer. The DLLs are versioned because Windows
 ; keeps each one loaded in every host application until that application exits.
-#define AppVersion "0.1.0"
+#define AppVersion "0.1.1"
 #define AppName "CtrlLingo · 译点"
 #define Publisher "boluomi2001"
 #define WebsiteUrl "https://github.com/boluomi2001/ctrllingo"

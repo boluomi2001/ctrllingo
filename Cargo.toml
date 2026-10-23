@@ -1,5 +1,6 @@
 [workspace]
 resolver = "3"
+exclude = ["vendor/candle-core"]
 members = [
     "crates/qingjian-core",
     "crates/qingjian-dictionary",
@@ -110,3 +111,4 @@ windows-registry = "0.6.1"
 # 上游收了就删掉这段回 crates.io。见 docs/design/rendering.md
 [patch.crates-io]
 cosmic-text = { git = "https://github.com/qingjian-team/cosmic-text", rev = "9cf0d65a5e4db381e34907103326673386096be3" }
+candle-core = { path = "vendor/candle-core" }

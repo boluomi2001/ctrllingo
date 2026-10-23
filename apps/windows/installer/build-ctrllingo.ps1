@@ -235,13 +235,13 @@ if (-not (Test-Path -LiteralPath $config)) {
     } finally { Pop-Location }
     @(
         'CtrlLingo · 译点 Windows 安装包构建信息',
-        "Version: 0.1.0",
+        "Version: 0.1.1",
         "Source commit: $gitHead",
         "Product data: $dataTag ($dataHash)",
         "Target: $Target / $Target32",
         "Rust: $rustVersion",
         "Built UTC: $([DateTime]::UtcNow.ToString('o'))",
-        'The separate CtrlLingo-0.1.0-source.zip contains git tracked files and non-ignored untracked files from this working tree.',
+        'The separate CtrlLingo-0.1.1-source.zip contains git tracked files and non-ignored untracked files from this working tree.',
         "Working tree dirty: $(if ($gitStatus.Count -gt 0) { 'yes' } else { 'no' })",
         "Dirty paths: $($gitStatus.Count)"
     ) | Set-Content -LiteralPath (Join-Path $documentation 'SOURCE-INFO.txt') -Encoding UTF8
@@ -250,7 +250,7 @@ if (-not (Test-Path -LiteralPath $config)) {
     Add-HashLines $stage $stageSums
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $sourceZipPath = Join-Path $outputRoot 'CtrlLingo-0.1.0-source.zip'
+    $sourceZipPath = Join-Path $outputRoot 'CtrlLingo-0.1.1-source.zip'
     if (Test-Path -LiteralPath $sourceZipPath) { Remove-Item -LiteralPath $sourceZipPath -Force }
     $sourceZip = [System.IO.Compression.ZipFile]::Open($sourceZipPath, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
@@ -272,7 +272,7 @@ if (-not (Test-Path -LiteralPath $config)) {
     if (-not $iscc) { throw '找不到 ISCC.exe；请通过 CTRLLINGO_ISCC 指定 Inno Setup 编译器。' }
     Invoke-CheckedNative $iscc @("/DPackageRoot=$stage", "/DOutputDirectory=$outputRoot", $iss) 'Inno Setup 编译'
 
-    $setup = Join-Path $outputRoot 'CtrlLingo-0.1.0-windows-x64-setup.exe'
+    $setup = Join-Path $outputRoot 'CtrlLingo-0.1.1-windows-x64-setup.exe'
     if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw "ISCC 没有生成安装包：$setup" }
     $outputSums = @($setup, $sourceZipPath) | ForEach-Object {
         "{0}  {1}" -f (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant(), [System.IO.Path]::GetFileName($_)

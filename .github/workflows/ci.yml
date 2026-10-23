@@ -30,8 +30,15 @@ jobs:
       - name: Format
         run: cargo fmt --all --check
       - name: Clippy
-        run: cargo clippy -p qingjian-core -p qingjian-platform -p qingjian-predict -p qingjian-update -p qingjian-learning -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings --all-targets --locked -- -D warnings
+        run: cargo clippy -p qingjian-core -p qingjian-platform -p qingjian-predict -p qingjian-update -p qingjian-learning -p qingjian-neural -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings --all-targets --locked -- -D warnings
       - name: Tests
-        run: cargo test -p qingjian-core -p qingjian-platform -p qingjian-predict -p qingjian-update -p qingjian-learning -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings --locked
+        run: cargo test -p qingjian-core -p qingjian-platform -p qingjian-predict -p qingjian-update -p qingjian-learning -p qingjian-neural -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings --locked
+      - name: Fetch locked release data
+        shell: pwsh
+        run: ./tools/fetch-data.ps1
+      - name: Test bundled QJM model compatibility
+        env:
+          CTRLLINGO_MODEL_DATA: ${{ github.workspace }}/target/release-data/unpacked/data
+        run: cargo test -p qingjian-neural --test dependency_compatibility --locked -- --ignored --nocapture
       - name: Check 32-bit TSF
         run: cargo check -p qingjian-windows-tsf --target i686-pc-windows-msvc --locked

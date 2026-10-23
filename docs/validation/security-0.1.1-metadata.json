@@ -1,0 +1,19 @@
+{
+  "scanner": "cargo-audit 0.22.2",
+  "date": "2026-10-23",
+  "advisory_db_repository": "https://github.com/RustSec/advisory-db",
+  "advisory_db_commit": "f7b2f6bc663452200bbe639ebb75e0c762b3422b",
+  "before_lock_commit": "b6add44daa9c99f17e205f98ccea1b9069c09d90",
+  "before_vulnerabilities": 3,
+  "after_vulnerabilities": 0,
+  "added_advisory_ignores": [],
+  "inherited_advisory_ignore": [
+    "RUSTSEC-2024-0436"
+  ],
+  "remaining_informational_warning": {
+    "package": "ttf-parser",
+    "version": "0.25.1",
+    "advisory": "RUSTSEC-2026-0192",
+    "kind": "unmaintained"
+  }
+}

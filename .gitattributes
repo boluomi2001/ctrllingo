@@ -6,3 +6,5 @@
 *.ps1 text eol=crlf
 *.png binary
 *.ico binary
+# 保留第三方源码文档中原有的 Markdown 行尾换行标记。
+vendor/candle-core/** whitespace=-blank-at-eol
