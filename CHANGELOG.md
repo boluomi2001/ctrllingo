@@ -2,6 +2,13 @@
 
 本文件只记录 CtrlLingo · 译点的独立发行；青简历史版本见 [上游更新记录](docs/upstream/CHANGELOG.md)。
 
+## 0.1.1 — Windows 依赖安全维护版（未签名）
+
+- 将 `candle-core 0.11.0` 使用的 `zip` 从 8.6.0 更新至 9.0.5，并为其 ZIP 文件名 API 调整兼容代码。
+- 以官方 `cargo-audit 0.22.2` 和 RustSec 数据库提交 `f7b2f6bc663452200bbe639ebb75e0c762b3422b` 扫描：旧锁文件报告 3 条漏洞，新锁文件报告 0 条，命令退出码为 0；这不代表软件不存在其他漏洞。
+- 新增并通过 NPZ 中文归档名读写回归与双 QJM 发行模型推理回归。
+- 安装器未签名，`uiAccess=false`；其他构建、兼容性与安装验收结果见[发布验收记录](docs/RELEASE-VALIDATION.md)。
+
 ## 0.1.0 — 首个 Windows 打包版（预发布）
 
 - 以 CtrlLingo · 译点品牌独立发布，使用新的输入法注册身份、通信通道、用户目录、安装器和多尺寸图标。

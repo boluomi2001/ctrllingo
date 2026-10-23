@@ -1,0 +1,100 @@
+{
+  "version": "0.1.1",
+  "date": "2026-10-23",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "implementation_commit": "3629d1e012337d573fbec073b42675ab853ccb2d",
+  "rust": "1.96.0",
+  "targets": [
+    "x86_64-pc-windows-gnu",
+    "i686-pc-windows-gnu"
+  ],
+  "profile": "release",
+  "tests": {
+    "passed": 890,
+    "failed": 0,
+    "ignored": 2,
+    "suites_including_empty_doctests": 45
+  },
+  "additional_explicit_model_test": {
+    "name": "bundled_qjm_models_preserve_scores",
+    "passed": 1,
+    "failed": 0,
+    "uses_bundled_qjm_files": true
+  },
+  "remaining_ignored_test": "existing latency probe",
+  "format": "passed",
+  "clippy": "passed with --all-targets --locked -- -D warnings",
+  "built": [
+    "server_x64",
+    "settings_x64",
+    "tsf_x64",
+    "tsf_x86"
+  ],
+  "dll_load_and_exports": {
+    "x64": true,
+    "x86": true,
+    "exports_per_dll": 4,
+    "registration_invoked": false
+  },
+  "protocol_test_languages": [
+    "en",
+    "ja",
+    "es",
+    "vi",
+    "de"
+  ],
+  "protocol_test_scope": "controlled predictor/protocol regression, not a real account or native keyboard test",
+  "security": {
+    "scanner": "cargo-audit 0.22.2",
+    "date": "2026-10-23",
+    "advisory_db_repository": "https://github.com/RustSec/advisory-db",
+    "advisory_db_commit": "f7b2f6bc663452200bbe639ebb75e0c762b3422b",
+    "before_lock_commit": "b6add44daa9c99f17e205f98ccea1b9069c09d90",
+    "before_vulnerabilities": 3,
+    "after_vulnerabilities": 0,
+    "added_advisory_ignores": [],
+    "inherited_advisory_ignore": [
+      "RUSTSEC-2024-0436"
+    ],
+    "remaining_informational_warning": {
+      "package": "ttf-parser",
+      "version": "0.25.1",
+      "advisory": "RUSTSEC-2026-0192",
+      "kind": "unmaintained"
+    }
+  },
+  "github_dependency_audit": {
+    "conclusion": "success",
+    "implementation_commit": "3629d1e012337d573fbec073b42675ab853ccb2d",
+    "url": "https://github.com/boluomi2001/ctrllingo/actions/runs/39958745362"
+  },
+  "sha256": {
+    "server": "40f550cacdfde8d770343f4f002ee5be0213bb3b54254101ecc088fd645449a4",
+    "settings": "75679b9ab01cb1588dbe0e11cd2a39414136f477bc7cdd01eed9515da69af24d",
+    "tsf_x64": "12833d8034f5ce805f33f5bd93c364882b0ee78476d0112e91b86ecd34aef2fa",
+    "tsf_x86": "ab6bae40a64973399f8f84bc5730a1721183340091a3050b9a229ac4c3db2fd9"
+  },
+  "model_sha256": {
+    "hanzhang-zhiwei": "83ad55abab750dd04bae93b48430981035d6c530d155db719cf1dccd4c07b0ef",
+    "hanzhang-tongbian": "4eabcb140b1833ac8bc7afb4f71d3a9ad8db0d9c8073c1890ec96644b6bef973"
+  },
+  "data_archive_sha256": "e259f8bc2a5456c92484c5d4362ca56b3e46b3d2e1a0d463788091a039d79e40",
+  "local_log_sha256": {
+    "validation-run": "d548dff06601f571631c0f5e94fc2d786dd089caef1d7a92d4e8864cb6a677b7",
+    "regression": "0259f237ed8a1f4e5450e174cf5bc6b78dceb0fc8a68dc8a055daef4ce0e9203",
+    "model-compatibility": "1fcb9a61b92c6b9b4b2d43441f6edd6308f4ec34aba13c619a94efe9938ddb08",
+    "clippy": "f69133676f2979779b1ded7073c699d171f7a932572a56755dc25884a38d05db",
+    "build64": "549ec95d0cac1152a6f2bbb54862f83224f15b2601f857b8ee236f2207864c6e",
+    "build32": "6495528e3409123651d5ac25887dd6ee636670b3d59bb8cac9c3777f1e0a3f74"
+  },
+  "signed": false,
+  "ui_access": false,
+  "installed_or_registered": false,
+  "installed_user_version_modified": false,
+  "real_tsf_verified": false,
+  "real_api_verified": false,
+  "upgrade_uninstall_verified": false,
+  "native_user_acceptance_for_this_version": null,
+  "previous_user_feedback": "0.1.0 user acceptance is recorded separately in validation/0.1.0.json; it does not verify 0.1.1.",
+  "environment_notes": "Restricted-temp and loopback-sandbox attempts failed; reruns used workspace temp and permitted loopback, with unchanged production storage and assertions."
+}

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## CtrlLingo 独立发行现状
 
-本仓库由 boluomi2001 维护，基于 Qingjian 二次开发。当前只发布 CtrlLingo · 译点 Windows 0.1.0 预发布包；下面的跨平台说明为继承的上游架构资料，不能作为译点其他平台的验收证据。独立发行入口见 `apps/windows/installer/README-CtrlLingo.md`，发布边界见 `docs/RELEASE-VALIDATION.md`。
+本仓库由 boluomi2001 维护，基于 Qingjian 二次开发。当前发行 CtrlLingo · 译点 Windows 0.1.1 依赖安全维护版（未签名）；下面的跨平台说明为继承的上游架构资料，不能作为译点其他平台的验收证据。独立发行入口见 `apps/windows/installer/README-CtrlLingo.md`，发布边界见 `docs/RELEASE-VALIDATION.md`。
 
 ## 上游仓库现状
 

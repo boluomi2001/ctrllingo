@@ -1,6 +1,6 @@
 # 获取帮助
 
-CtrlLingo · 译点 0.1.0 将先以 Windows 预发布版提供。维护者完成原生安装、升级、卸载和真实 TSF 上屏验收前，不会称其为稳定版。发布包可在 [Releases 页面](https://github.com/boluomi2001/ctrllingo/releases)查看。
+CtrlLingo · 译点当前版本为 0.1.1，是 Windows 依赖安全维护版（未签名）。发布包可在 [Releases 页面](https://github.com/boluomi2001/ctrllingo/releases)查看；已完成项目与仍待补充的验收范围见[发布验收记录](docs/RELEASE-VALIDATION.md)。
 
 - **遇到缺陷：**通过 [Bug Report](https://github.com/boluomi2001/ctrllingo/issues/new?template=bug_report.yml) 提交。写明版本、Windows 版本、出问题的应用和可复现步骤。
 - **提出功能建议：**使用 [Feature Request](https://github.com/boluomi2001/ctrllingo/issues/new?template=feature_request.yml)。

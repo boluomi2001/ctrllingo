@@ -9,10 +9,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/平台-Windows%20x64-blue" alt="Windows x64">
   <img src="https://img.shields.io/badge/许可-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
-  <img src="https://img.shields.io/badge/版本-0.1.0-orange" alt="Version 0.1.0">
+  <img src="https://img.shields.io/badge/版本-0.1.1-orange" alt="Version 0.1.1">
 </p>
 
-CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。当前发布 **0.1.0 预发布版**，发布目标为 Windows x64 主程序，并附带供 32 位应用使用的 x86 TSF 组件。2026-10-23 已收到功能试用全部正常的用户反馈；依赖安全审查尚未通过，因此仍保留预发布状态。验证范围见[发布验收记录](docs/RELEASE-VALIDATION.md)。
+CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简）上游项目独立二次开发。**0.1.1 是 Windows 依赖安全维护版（未签名）**，面向 Windows x64，并附带供 32 位应用使用的 x86 TSF 组件。ZIP 依赖安全公告已修复；版本验收范围与尚待完成的检查见[发布验收记录](docs/RELEASE-VALIDATION.md)。
 
 ## 功能
 
@@ -31,7 +31,7 @@ CtrlLingo · 译点是一款 Windows 拼音输入法，基于 Qingjian（青简�
 
 ## 下载、安装与卸载
 
-从 [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases) 下载 `CtrlLingo-0.1.0-windows-x64-setup.exe`。0.1.0 仍以预发布版本提供，发布条件与已知问题见[验收记录](docs/RELEASE-VALIDATION.md)。当前没有签名；请核对发布页提供的 `SHA256SUMS.txt`，不要关闭 Windows 安全保护来绕过提示。
+从 [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases) 下载 `CtrlLingo-0.1.1-windows-x64-setup.exe`。程序未签名，Windows 安全策略可能拦截运行；在系统搜索等界面中，候选窗也可能被遮挡。请核对发布页提供的 `SHA256SUMS.txt`，不要关闭 Windows 安全保护来绕过提示。已知限制和验收边界见[验收记录](docs/RELEASE-VALIDATION.md)。
 
 运行安装包并按提示完成安装。安装程序会注册 x64 与 x86 TSF；首次切换输入法时，如果应用已经打开，请重新打开应用，或注销后重新登录。
 
@@ -64,7 +64,7 @@ $env:CTRLLINGO_ISCC = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 .\apps\windows\installer\build-ctrllingo.ps1
 ```
 
-脚本按 [`tools/release/data.lock`](tools/release/data.lock) 获取并校验产品数据，默认把安装包、源代码快照和 `SHA256SUMS.txt` 写入 `target\ctrllingo-release`。安装包名为 `CtrlLingo-0.1.0-windows-x64-setup.exe`，源码快照名为 `CtrlLingo-0.1.0-source.zip`。可运行以下命令执行 Windows 相关 crate 的测试；这些是验证步骤，不表示本次发布验收已完成：
+脚本按 [`tools/release/data.lock`](tools/release/data.lock) 获取并校验产品数据，默认把安装包、源代码快照和 `SHA256SUMS.txt` 写入 `target\ctrllingo-release`。安装包名为 `CtrlLingo-0.1.1-windows-x64-setup.exe`，源码快照名为 `CtrlLingo-0.1.1-source.zip`。可运行以下命令执行 Windows 相关 crate 的测试；这些是验证步骤，不表示本次发布验收已完成：
 
 ```powershell
 cargo test --locked -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings
@@ -83,6 +83,4 @@ CtrlLingo 是由 `boluomi2001` 维护的独立 Windows 二次开发版本，基�
 - [安全政策](SECURITY.md)（请私下报告安全问题）
 - [支持说明](SUPPORT.md) · [贡献指南](CONTRIBUTING.md)
 
-本地相关回归 793 项通过，严格代码检查和五语言模拟验收通过；用户另报告功能试用正常。验证来源、范围与未单独记录项见[发布验收记录](docs/RELEASE-VALIDATION.md)。
-
-依赖安全审查目前未通过：模型推理库间接依赖的 ZIP 库有三条公开安全公告。静态检查未发现本应用调用相关解包入口；尚未排除全部风险。详情与正式版门槛见[已知问题](docs/KNOWN-ISSUES.md)。
+0.1.1 已通过锁定依赖安全扫描、890 项本地回归、额外的实际模型兼容性验证、严格代码检查和 x64/x86 构建。结果与未覆盖范围见[发布验收记录](docs/RELEASE-VALIDATION.md)。扫描通过不能证明软件不存在漏洞或覆盖所有 Windows 环境；其他已知限制见[已知问题](docs/KNOWN-ISSUES.md)。

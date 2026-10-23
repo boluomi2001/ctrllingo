@@ -7,10 +7,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%20x64-blue" alt="Windows x64">
   <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later">
-  <img src="https://img.shields.io/badge/version-0.1.0-orange" alt="Version 0.1.0">
+  <img src="https://img.shields.io/badge/version-0.1.1-orange" alt="Version 0.1.1">
 </p>
 
-CtrlLingo · 译点 is an independent Windows fork based on the Qingjian pinyin input method. Version **0.1.0** is a prerelease for Windows x64, with an x86 TSF component for 32-bit applications. On 2026-10-23, the user reported that all features worked in their testing. The dependency security review has not passed, so this remains a prerelease. See the [acceptance record](docs/RELEASE-VALIDATION.md) for verification scope.
+CtrlLingo · 译点 is an independent Windows fork based on the Qingjian pinyin input method. **Version 0.1.1 is a Windows dependency security maintenance release (unsigned)** for Windows x64, with an x86 TSF component for 32-bit applications. The ZIP dependency advisories have been addressed. See the [acceptance record](docs/RELEASE-VALIDATION.md) for completed checks and remaining verification scope.
 
 ## Features
 
@@ -29,7 +29,7 @@ If no compatible endpoint and API key are configured, no cloud translation will 
 
 ## Download, installation, and uninstall
 
-Download `CtrlLingo-0.1.0-windows-x64-setup.exe` from [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases). Version 0.1.0 remains a prerelease; release conditions and known issues are listed in the [acceptance record](docs/RELEASE-VALIDATION.md). The installer is unsigned. Check the release's `SHA256SUMS.txt`; do not disable Windows security protections to bypass a prompt.
+Download `CtrlLingo-0.1.1-windows-x64-setup.exe` from [GitHub Releases](https://github.com/boluomi2001/ctrllingo/releases). The program is unsigned, so Windows security policy may block it; the candidate window may also be obscured in interfaces such as system search. Check the release's `SHA256SUMS.txt`; do not disable Windows security protections to bypass a prompt. See the [acceptance record](docs/RELEASE-VALIDATION.md) for known limitations and verification scope.
 
 Run the installer and follow its prompts. It registers both x64 and x86 TSF components. If an application was already open, reopen it before selecting the input method, or sign out and back in.
 
@@ -56,7 +56,7 @@ $env:CTRLLINGO_ISCC = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 .\apps\windows\installer\build-ctrllingo.ps1
 ```
 
-The script fetches and verifies product data using [`tools/release/data.lock`](tools/release/data.lock). By default it writes the installer, source archive, and `SHA256SUMS.txt` to `target\ctrllingo-release`. The files are named `CtrlLingo-0.1.0-windows-x64-setup.exe` and `CtrlLingo-0.1.0-source.zip`. To run Windows-related crate tests:
+The script fetches and verifies product data using [`tools/release/data.lock`](tools/release/data.lock). By default it writes the installer, source archive, and `SHA256SUMS.txt` to `target\ctrllingo-release`. The files are named `CtrlLingo-0.1.1-windows-x64-setup.exe` and `CtrlLingo-0.1.1-source.zip`. To run Windows-related crate tests:
 
 ```powershell
 cargo test --locked -p qingjian-windows-server -p qingjian-windows-tsf -p qingjian-settings
@@ -77,4 +77,4 @@ Code is provided under [GPL-3.0-or-later](LICENSE). Bundled data and some compon
 - [Security policy](SECURITY.md) (report security issues privately)
 - [Support](SUPPORT.md) · [Contributing](CONTRIBUTING.md)
 
-Dependency audit currently fails on three inherited ZIP extraction advisories. User-reported feature testing does not change that result; this prerelease does not claim a clean security audit. See [known issues](docs/KNOWN-ISSUES.md) and the [acceptance record](docs/RELEASE-VALIDATION.md) for evidence boundaries.
+Version 0.1.1 passed its locked-dependency audit, 890 local regression tests, an additional bundled-model compatibility check, strict lint checks, and x64/x86 builds. This does not establish that the software is vulnerability-free or compatible with every Windows environment. Historical 0.1.0 results and remaining checks are separated in [known issues](docs/KNOWN-ISSUES.md) and the [acceptance record](docs/RELEASE-VALIDATION.md).
