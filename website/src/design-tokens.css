@@ -1,0 +1,18 @@
+:root {
+  --color-background: #faf9f6;
+  --color-brand: #8faf9d;
+  --color-primary: #416d56;
+  --color-primary-hover: #365c48;
+  --color-surface: #fff;
+  --color-surface-tint: #eaf2ed;
+  --color-text: #2f3a34;
+  --color-text-muted: #5f6f65;
+  --color-border: #dfe7e1;
+  --radius-control: 12px;
+  --radius-card: 20px;
+  --radius-section: 28px;
+  --shadow-card: 0 8px 28px rgb(47 58 52 / 6%);
+  --shadow-elevated: 0 16px 48px rgb(47 58 52 / 10%);
+  --space-card: 24px;
+  --space-section: 96px;
+}

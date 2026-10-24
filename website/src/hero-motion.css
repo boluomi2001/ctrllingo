@@ -1,0 +1,147 @@
+.demo-stage .hero-art-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate3d(var(--demo-pointer-x, 0px), var(--demo-pointer-y, 0px), 0);
+}
+
+.demo-stage .glass-layer { z-index: -1; }
+.demo-stage .ctrl-layer,
+.demo-stage .space-layer { z-index: 3; }
+
+.demo-stage .hero-art-float { position: absolute; inset: 0; }
+.demo-stage .glass-float { animation: glass-drift 9s ease-in-out infinite; animation-play-state: paused; }
+.demo-stage .ctrl-float { animation: ctrl-float 4.8s ease-in-out infinite; animation-play-state: paused; }
+.demo-stage .space-float { animation: space-float 5.8s ease-in-out infinite; animation-play-state: paused; }
+.demo-stage[data-motion-active="true"] .hero-art-float { animation-play-state: running; }
+
+.demo-stage .motion-toggle {
+  position: absolute;
+  left: 18px;
+  top: calc(100% - 8px);
+  right: auto;
+  bottom: auto;
+  z-index: 4;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #dce5de;
+  border-radius: 7px;
+  padding: 0 9px;
+  background: #fff;
+  color: #456451;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.demo-stage .motion-toggle:disabled { cursor: default; opacity: .75; }
+.demo-stage .input-card { position: relative; }
+.demo-stage .input-card::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(105deg, transparent 35%, rgb(113 177 131 / 20%) 50%, transparent 65%);
+  background-size: 240% 100%;
+  background-position: 100% 0;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+}
+
+.demo-stage[data-demo-state="translating"] .ctrl-art { animation: ctrl-key-press 480ms ease-in-out both; }
+.demo-stage[data-demo-state="translating"] .ctrl-button .key-cap { animation: keycap-press 480ms ease-in-out both; }
+.demo-stage[data-demo-state="translating"] .demo-arrow { animation: translation-flow 560ms ease-out both; }
+.demo-stage[data-demo-state="translating"] .input-card { animation: input-emphasis 600ms ease-out both; }
+.demo-stage[data-demo-state="translating"] .input-card::after { animation: input-sheen 600ms ease-out both; }
+.demo-stage[data-demo-state="translated"] .translation-ready > span[lang="en"] { animation: translation-enter 360ms ease-out both; }
+.demo-stage[data-demo-state="committed"] .translation-ready > span[lang="en"] { animation: commit-settle 520ms ease-out both; }
+.demo-stage[data-demo-state="committed"] .space-art { animation: space-key-press 480ms ease-in-out both; }
+.demo-stage[data-demo-state="committed"] .translation-card { animation: result-emphasis 600ms ease-out both; }
+.demo-stage[data-demo-state="committed"] .translation-check { animation: check-enter 600ms ease-out both; }
+.demo-stage .key-cap:active { translate: 0 4px; }
+
+@keyframes ctrl-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes space-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(14px); }
+}
+@keyframes glass-drift {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  50% { transform: translateY(-18px) rotate(2deg) scale(1.025); }
+}
+@keyframes ctrl-key-press {
+  0%, 28% { translate: 0 0; scale: 1; }
+  46% { translate: 0 8px; scale: .94; }
+  68% { translate: 0 -2px; scale: 1.015; }
+  84%, 100% { translate: 0 0; scale: 1; }
+}
+@keyframes keycap-press {
+  0%, 24% { translate: 0 0; }
+  46% { translate: 0 4px; }
+  70% { translate: 0 -1px; }
+  100% { translate: 0 0; }
+}
+@keyframes translation-enter {
+  from { opacity: 0; translate: 0 8px; }
+  78% { opacity: 1; translate: 0 -1px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes translation-flow {
+  0% { opacity: .55; translate: 0 -4px; }
+  55% { opacity: 1; color: #416d56; translate: 0 5px; }
+  100% { opacity: 1; translate: 0 0; }
+}
+@keyframes commit-settle {
+  from { translate: 0 -6px; }
+  70% { translate: 0 1px; }
+  to { translate: 0 0; }
+}
+@keyframes input-emphasis {
+  0%, 100% { border-color: transparent; box-shadow: 0 2px 8px rgb(52 70 57 / 4%); }
+  42% { border-color: #80b492; box-shadow: 0 0 0 3px rgb(76 145 98 / 12%), 0 2px 8px rgb(52 70 57 / 4%); }
+}
+@keyframes input-sheen {
+  from { opacity: 0; background-position: 100% 0; }
+  25% { opacity: .75; }
+  to { opacity: 0; background-position: 0 0; }
+}
+@keyframes space-key-press {
+  0%, 28% { translate: 0 0; scale: 1; }
+  46% { translate: 0 8px; scale: .94; }
+  68% { translate: 0 -2px; scale: 1.015; }
+  84%, 100% { translate: 0 0; scale: 1; }
+}
+@keyframes result-emphasis {
+  0% { box-shadow: 0 4px 13px rgb(52 70 57 / 4%); }
+  40% { border-color: #86b894; box-shadow: 0 0 0 4px rgb(65 145 87 / 15%), 0 0 22px rgb(65 145 87 / 17%); }
+  100% { box-shadow: 0 4px 13px rgb(52 70 57 / 4%); }
+}
+@keyframes check-enter {
+  from { opacity: 0; scale: .6; translate: 0 3px; }
+  55% { opacity: 1; scale: 1.14; translate: 0 0; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .demo-stage .hero-art-layer { transition: transform 240ms ease-out; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-stage .hero-art-layer { transform: none !important; transition: none !important; }
+  .demo-stage .hero-art-float,
+  .demo-stage[data-demo-state="translating"] .ctrl-art,
+  .demo-stage[data-demo-state="translating"] .ctrl-button .key-cap,
+  .demo-stage[data-demo-state="translating"] .demo-arrow,
+  .demo-stage[data-demo-state="translating"] .input-card,
+  .demo-stage[data-demo-state="translating"] .input-card::after,
+  .demo-stage[data-demo-state="translated"] .translation-ready > span[lang="en"],
+  .demo-stage[data-demo-state="committed"] .translation-ready > span[lang="en"],
+  .demo-stage[data-demo-state="committed"] .space-art,
+  .demo-stage[data-demo-state="committed"] .translation-card,
+  .demo-stage[data-demo-state="committed"] .translation-check { animation: none !important; }
+}

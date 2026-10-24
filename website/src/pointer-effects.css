@@ -1,0 +1,49 @@
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-pointer~="card"] {
+    position: relative;
+    isolation: isolate;
+    transition: transform 300ms cubic-bezier(.22, 1, .36, 1), box-shadow 240ms ease;
+  }
+
+  .home-steps > li[data-pointer~="card"] { isolation: auto; }
+
+  [data-pointer~="card"]::before,
+  [data-pointer~="card"]::after {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border-radius: inherit;
+    content: "";
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms ease;
+  }
+
+  [data-pointer~="card"]::before {
+    background: radial-gradient(360px circle at var(--pointer-x, 50%) var(--pointer-y, 50%), rgb(143 175 157 / 25%), transparent 72%);
+  }
+
+  [data-pointer~="card"]::after {
+    box-shadow: inset 0 0 0 1px rgb(143 175 157 / 30%), inset 0 0 24px rgb(143 175 157 / 10%);
+  }
+
+  [data-pointer~="card"] > :not(.home-step-connector):not(.home-step-number) { position: relative; z-index: 1; }
+
+  [data-pointer~="card"][data-pointer-active="true"] {
+    transform: perspective(1000px) translateY(-3px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    box-shadow: 0 16px 38px rgb(47 78 58 / 12%);
+  }
+
+  [data-pointer~="card"][data-pointer-active="true"]::before,
+  [data-pointer~="card"][data-pointer-active="true"]::after { opacity: 1; }
+
+  .button[data-pointer~="magnet"] {
+    translate: 0 0;
+    transition: translate 650ms cubic-bezier(.16, 1.7, .4, 1), transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  }
+
+  .button[data-pointer~="magnet"][data-pointer-active="true"] {
+    translate: var(--magnet-x, 0px) var(--magnet-y, 0px);
+    transition: translate 100ms ease-out, transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  }
+}

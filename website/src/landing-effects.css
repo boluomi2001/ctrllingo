@@ -1,0 +1,108 @@
+.hero-title-world,
+.pointer-title {
+  color: #416d56;
+  background-image: radial-gradient(160px circle at var(--pointer-x, 55%) var(--pointer-y, 50%), #6a9277 0%, #416d56 65%, #315b43 100%);
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-title-world {
+  padding-inline-start: clamp(0px, calc(100vw - 40px - 5em), 2em);
+}
+
+.nav-motion-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-block: 8px;
+  isolation: isolate;
+}
+
+.nav-motion-link::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(110deg, #eaf2ed, #dcebdd);
+  content: "";
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.nav-motion-link::after {
+  position: absolute;
+  right: 0;
+  bottom: 3px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8faf9d, #6f987e);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 220ms ease;
+}
+
+.nav-motion-link:hover,
+.nav-motion-link:focus-visible {
+  color: #315b43;
+}
+
+.nav-motion-link:hover::before,
+.nav-motion-link:focus-visible::before {
+  opacity: 1;
+}
+
+.nav-motion-link:hover::after,
+.nav-motion-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.home-cta-panel::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at var(--pointer-x, 55%) var(--pointer-y, 50%), rgb(143 175 157 / 32%), transparent 62%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-cta-copy,
+.home-cta-logo {
+  z-index: 2;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .home-cta-panel::before {
+    transition: opacity 240ms ease;
+  }
+
+  .home-cta-panel[data-pointer-active="true"]::before {
+    opacity: 1;
+  }
+
+  .home-cta-panel .home-cta-hills {
+    transition: transform 280ms ease-out;
+  }
+
+  .home-cta-panel[data-pointer-active="true"] .home-cta-hills {
+    transform: translate(calc(var(--pointer-dx, 0) * 6px), calc(var(--pointer-dy, 0) * 4px)) scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-title-world,
+  .pointer-title {
+    background-image: radial-gradient(circle at 55% 50%, #6a9277 0%, #416d56 70%);
+  }
+
+  .nav-motion-link::before,
+  .nav-motion-link::after,
+  .home-cta-panel::before {
+    transition: none;
+  }
+}
