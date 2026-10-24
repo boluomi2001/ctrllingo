@@ -1,27 +1,35 @@
-# Cloudflare Pages 准备配置（待执行）
+# Cloudflare Pages 部署记录
 
-此文件记录部署前的配置方案，不代表 Pages 项目已创建、域名已绑定或网站已部署。
+状态核对日期：2026-10-24。以下记录已核实的 Pages 配置和域名状态；自动部署触发仍待本轮文档提交后单独验证。
 
-## Pages 配置候选
+## Pages 项目
 
-- GitHub 仓库：`boluomi2001/ctrllingo`
-- Pages 项目候选名：`ctrllingo-website`
-- 生产分支：`website`
-- Root directory：`website`
-- Build command：`pnpm run build`
-- Build output directory：`dist`
-- Node.js：`24.22.1`（`.node-version`）
-- `PNPM_VERSION`：`11.25.0`
-- 可设置 `NPM_CONFIG_REGISTRY=https://registry.npmjs.org` 覆盖本机 `.npmrc` 中的镜像地址。
-- 仅监测 `website/**` 的变更。
+- Pages 项目：`ctrllingo-website`，已创建并连接 GitHub 仓库 `boluomi2001/ctrllingo`。
+- 生产分支：`website`；Root directory：`website/`。Cloudflare 的源码路径过滤为 `website/**`。
+- Production 自动部署已启用；Preview 部署面向所有分支并受相同路径过滤。当前尚未验证本轮文档提交是否会自动触发新的部署。
+- 构建命令：`pnpm run build`；输出目录：`dist`。
+- 构建环境：`NODE_VERSION=24.22.1`、`PNPM_VERSION=11.25.0`、`NPM_CONFIG_REGISTRY=https://registry.npmjs.org`。
+- 首次 Git 构建成功，部署 ID：`d1fb3961-0abf-4376-870b-2904c601e255`；产物 25 个文件，`uses_functions=false`。
+- Cloudflare 预览地址：<https://ctrllingo-website.pages.dev/>。
 
-## 域名与现有业务约束
+## 正式域名
 
-- Pages 仅计划绑定 `liyuxing.icu` 与 `www.liyuxing.icu`。
-- 保留 `sph.liyuxing.icu` 当前精确 route 到 `sph-parse`，及其 `AAAA 100::` 记录；不得修改或覆盖。
-- 不修改 nameserver（NS）、SSL 设置或通配符路由/记录。
-- 域名体系中的 `sph.liyuxing.icu` 用于视频业务；apex `liyuxing.icu` 与 `www.liyuxing.icu` 当前未配置 DNS 记录。
-- 部署前，用户提供的两条视频链接请求均返回 HTTP 500；上游 `parseShareUrl` 返回 HTTP 401。直链与 HTTP Range 范围尚未测试，不能表述为已通过。
-- 此方案不代表已创建、已绑定或已部署，也不构成对现有视频业务影响的验证结论。
+- `https://liyuxing.icu/` 与 `https://www.liyuxing.icu/` 均已绑定 Pages，状态为 active；证书状态为 active，实际 HTTPS 请求均返回 200。
+- `www` 直接提供相同站点内容；页面 canonical 指向 `https://liyuxing.icu/`。没有新增 www 重定向规则。
+- 域名体系中的 `sph.liyuxing.icu` 用于视频业务；现有精确 route `sph.liyuxing.icu/* → sph-parse` 与 `AAAA 100::` 记录保持原样。
+- 本次没有修改整区 nameserver、SSL 模式（Full）、Always Use HTTPS、最低 TLS 版本（TLS 1.0）或通配符配置。
 
-本文件不记录账号 ID、Cookie、密钥或其他凭据。
+## 视频业务基线
+
+- 部署前后核对中，视频 API 返回 HTTP 200、`errCode=0`。
+- 原 `videoUrl` 直链在部署前后均可做 HTTP Range 请求并返回 206；读取的 1024 字节摘要一致。
+- `originVideoUrl` 字段在部署前后均返回 HTTP 400，这是既有问题，不能记作本次部署回归。
+- 正式部署前曾观察到上游 `parseShareUrl` 返回 401；随后该问题在正式部署前已恢复。当前观察不证明上游问题已永久解决。
+
+## 变更与回滚边界
+
+官网发布源是同仓库 `website` 分支的 `website/` 目录；更新步骤见 [`DEPLOYMENT.md`](DEPLOYMENT.md)。不要把官网变更提交到维护输入法软件的 `main` 分支。
+
+若本轮 Pages 版本导致问题，只回滚 Pages 到此前部署版本；若确认是本轮为 apex 或 www 新增的绑定 / DNS 变更所致，只回退对应的 apex / www 项目级变更。回滚不得覆盖整区 DNS，也不得修改 `sph.liyuxing.icu`、其 route 或 `AAAA 100::`、nameserver、SSL 或通配符配置。
+
+本文件不记录 Cloudflare 账号 ID、DNS 记录 ID、Cookie、API 密钥或带令牌的视频 URL。
