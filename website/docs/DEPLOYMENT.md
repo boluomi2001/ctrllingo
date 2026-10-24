@@ -1,44 +1,60 @@
-# 部署参数与待上线事项
+# Cloudflare Pages 部署与更新
 
-官网是静态 React / Vite 页面，当前没有服务器 API、数据库或真实翻译连接。可以部署构建后的 `dist/`。本轮只准备文件，不创建云项目、绑定账户、推送仓库或发布。
+状态核对日期：2026-10-24。本官网已部署到 Cloudflare Pages。正式配置、域名约束和视频业务基线见 [`CLOUDFLARE.md`](CLOUDFLARE.md)；实际检查范围见 [`VALIDATION.md`](VALIDATION.md)。
 
-## 建议路径
+## 当前部署配置
 
-优先为官网建立独立的代码仓库，再选择支持 Vite 的静态托管；也可将官网作为现有仓库中的明确子目录，但不能覆盖输入法源码。当前本地目录没有 Git 元数据，现有 GitHub 项目链接指向输入法产品仓库。
-
-如采用 Vercel，按其 [Vite 官方文档](https://vercel.com/docs/frameworks/frontend/vite) 连接官网仓库并生成预览部署；先验收预览，再决定正式域名。其他静态托管可直接接收已构建文件。服务套餐、费用和目标地区可达性需在选择账户时另行确认，本轮未验证这些条件。
-
-| 项目 | 本项目参数 |
+| 项目 | 已配置值 |
 | --- | --- |
-| 项目根目录 | 独立官网仓库根目录；若使用子目录，选择 `ctrllingo-web` |
-| Node | 24.x，本机验证为 24.22.1 |
-| 包管理器 | pnpm 11.25.0 |
-| 安装 | `pnpm install --frozen-lockfile` |
-| 检查 | `pnpm run check` |
-| 构建 | `pnpm run build` |
-| 发布目录 | `dist` |
-| 前端服务密钥 | 无需配置 |
-| 路由 | 单页及 `#features` 等锚点，无额外 pathname 路由 |
+| Cloudflare Pages 项目 | `ctrllingo-website` |
+| GitHub 仓库 | `boluomi2001/ctrllingo` |
+| 生产分支 | `website` |
+| Root directory | `website/` |
+| 源码路径过滤 | `website/*` |
+| 构建命令 | `pnpm run build` |
+| 输出目录 | `dist` |
+| Node | `24.22.1` |
+| pnpm | `11.25.0` |
+| NPM registry | `https://registry.npmjs.org` |
+| 正式地址 | `https://liyuxing.icu/`、`https://www.liyuxing.icu/` |
+| 预览地址 | `https://ctrllingo-website.pages.dev/` |
 
-目前媒体使用 `/media/...` 绝对根路径，适用于域名根目录。不能原样部署在 GitHub Pages 等 `/仓库名/` 子路径；若选择这类地址，需要先调整媒体路径与 Vite base，再做相同回归，不能只修改 base 后假定全部资源正常。
+Production 自动部署已启用，Preview 面向所有分支；二者均只对 `website/*` 路径变更构建。已启用 `website` 分支的 `website/*` 推送自动构建；每次构建和正式版本切换结果在 Pages 部署历史核对。首次 Git 构建已成功，部署 ID 和实际域名结果见 `CLOUDFLARE.md`。
 
-不直接使用 `file://` 打开产物，不将 Vite dev / preview 服务当作生产托管。此项目没有 pathname 路由，暂不需要额外添加全路径 SPA 重写。若以后新增路径路由，按托管平台规则配置并测试深链接。
+这是静态 Vite 站点，不需要前端服务密钥、后台账户或数据库。环境变量设置 `NPM_CONFIG_REGISTRY=https://registry.npmjs.org`，以覆盖本机 `.npmrc` 中的镜像地址。网页的安装包按钮由浏览器直连 GitHub Release，不执行安装器。
 
-## 发布前逐项完成
+## 在同一仓库更新官网
 
-- [ ] 项目方验收最终 1440px / 390px 截图与实际动效。
-- [ ] 选择官网源码仓库和对外发布许可，确认 Logo、图片、录屏等资源的发布权限；依赖许可不替代品牌素材授权。
-- [ ] 确认托管账户、服务费用、目标地区可达性与正式域名。
-- [ ] 在预览环境验证 HTTPS、缓存、压缩、视频 Range 请求与全屏播放，不只检查首页 HTTP 200。
-- [ ] 确认正式网址后添加真实 canonical、og:url、绝对分享图 URL、sitemap；不填占位域名。
-- [ ] 按环境决定爬虫策略，预览站与正式站分别检查。当前没有 sitemap / robots 文件，不等于已完成搜索收录验证。
-- [ ] 复测实体手机、Safari / Firefox、屏幕阅读器和文字放大；记录系统及浏览器版本。
-- [ ] 在实际 CDN / 目标网络采样加载性能；本地限速数据不是线上 Core Web Vitals。
-- [ ] 再核对软件发布版本及对应源码、LICENSE / NOTICE、第三方许可与校验文件；不要只上传安装器。
-- [ ] 保存发布版本、文件校验清单、预览截图和回滚副本，再执行正式发布。
+官网线上源码在 `website` 分支的 `website/` 目录。原始本地开发副本 `ctrllingo-web` 与该 Git 工作区独立；需要更新线上内容时，应在仓库的 `website` 分支工作区修改 `website/` 中的文件。
 
-## 输入法下载的分发边界
+可从仓库根目录运行：
 
-页首、首屏和手机菜单的“立即下载”当前直接指向 GitHub 上已核实的 CtrlLingo 0.1.1 Windows x64 安装器；浏览器处理文件下载，网页不会运行安装器。底部仍提供 GitHub 发布说明与源码许可入口。安装器由输入法软件仓库发布，官网代码位于当前独立目录；升级时应同步核对版本、对应源码和校验材料，并保留许可、版权、修改说明、构建 / 安装所需材料、第三方数据及依赖许可。
+```bash
+git clone --branch website https://github.com/boluomi2001/ctrllingo.git ctrllingo-site
+cd ctrllingo-site/website
+```
 
-以上依据项目随附 GPL 第 4–6 节以及源码 / 发布材料检查。对应源码访问、后续版本的一致性和第三方组件的各自许可需要持续维护，不能以一次哈希匹配代替全部法律判断。原始许可见[软件 LICENSE](https://github.com/boluomi2001/ctrllingo/blob/v0.1.1/LICENSE)，分发说明见[NOTICE](https://github.com/boluomi2001/ctrllingo/blob/v0.1.1/NOTICE)，当前产物见[发布页](https://github.com/boluomi2001/ctrllingo/releases/tag/v0.1.1)。
+在 `website/` 中编辑和检查后，回到仓库根目录提交并推送到 `website`：
+
+```bash
+cd ..
+git add website
+git commit -m "Update CtrlLingo website"
+git push origin website
+```
+
+只把官网文件加入 `website/`。`main` 分支继续维护输入法软件，不要把官网改动提交到 `main`。已确认 `website/*` 推送会自动创建 Pages 构建；推送后应在 Pages 部署历史核对构建结果和正式版本状态。
+
+## 域名、资源和回滚
+
+页面资源使用 `/media/...` 等根路径，站点应发布在域名根目录。正式 canonical 与 Open Graph URL 使用 `https://liyuxing.icu/`；www 直接提供同一站点，不新增重定向规则。`robots.txt` 与 `sitemap.xml` 只声明主页。
+
+仅处理本轮官网的 Pages 版本及 apex / www 绑定或 DNS 变更。若需回退，优先恢复此前可用的 Pages 部署；只有确认问题来自新增的 apex / www 绑定或 DNS 时，才回退相应项目级变更。不得覆盖整区 DNS，不得更改 `sph.liyuxing.icu` 的精确 route 或 `AAAA 100::`，也不更改 nameserver、SSL 或通配符配置。
+
+现有视频服务的实测基线和问题范围见 `CLOUDFLARE.md`。特别是 `originVideoUrl` 的既有 HTTP 400 与短暂恢复的上游 401，不应写成已永久解决。
+
+## 下载与许可边界
+
+页首、首屏和手机菜单中的三个“立即下载”入口直连已核对的 CtrlLingo 0.1.1 Windows x64 安装器。浏览器负责下载；官网不运行安装器。升级前应核对软件版本、对应源码、LICENSE / NOTICE、第三方许可和校验材料。
+
+输入法基于 Qingjian 独立二次开发并采用 GPL-3.0-or-later。官网依赖许可不自动授权品牌图、文案或媒体；源码对外发布的许可选择仍由项目方决定。此次文档更新不改变既有许可边界。

@@ -1,15 +1,16 @@
 # Cloudflare Pages 部署记录
 
-状态核对日期：2026-10-24。以下记录已核实的 Pages 配置和域名状态；自动部署触发仍待本轮文档提交后单独验证。
+状态核对日期：2026-10-24。以下记录已核实的 Pages 配置和域名状态。
 
 ## Pages 项目
 
 - Pages 项目：`ctrllingo-website`，已创建并连接 GitHub 仓库 `boluomi2001/ctrllingo`。
-- 生产分支：`website`；Root directory：`website/`。Cloudflare 的源码路径过滤为 `website/**`。
-- Production 自动部署已启用；Preview 部署面向所有分支并受相同路径过滤。当前尚未验证本轮文档提交是否会自动触发新的部署。
+- 生产分支：`website`；Root directory：`website/`。Cloudflare 的源码路径过滤为 `website/*`。
+- Production 自动部署已启用；Preview 部署面向所有分支并受相同路径过滤。已启用 `website` 分支的 `website/*` 推送自动构建；每次构建和正式版本切换结果在 Pages 部署历史核对。
 - 构建命令：`pnpm run build`；输出目录：`dist`。
 - 构建环境：`NODE_VERSION=24.22.1`、`PNPM_VERSION=11.25.0`、`NPM_CONFIG_REGISTRY=https://registry.npmjs.org`。
 - 首次 Git 构建成功，部署 ID：`d1fb3961-0abf-4376-870b-2904c601e255`；产物 25 个文件，`uses_functions=false`。
+- 首次文档推送创建的记录 `2d5650ea-578c-429c-8853-966b3c8f81a9` 虽显示 queued，但 `is_skipped=true`，不能视为已开始构建。随后将文件监听规则改为官方示例格式 `website/*`；自动发布结果须同时核对 `is_skipped=false`、最终 deploy success 和正式版本已切换，不能只看记录已创建。
 - Cloudflare 预览地址：<https://ctrllingo-website.pages.dev/>。
 
 ## 正式域名
@@ -23,7 +24,7 @@
 
 - 部署前后核对中，视频 API 返回 HTTP 200、`errCode=0`。
 - 原 `videoUrl` 直链在部署前后均可做 HTTP Range 请求并返回 206；读取的 1024 字节摘要一致。
-- `originVideoUrl` 字段在部署前后均返回 HTTP 400，这是既有问题，不能记作本次部署回归。
+- `originVideoUrl` 字段在部署前后均返回 HTTP 400，这是既有问题，不能归因于本次部署。
 - 正式部署前曾观察到上游 `parseShareUrl` 返回 401；随后该问题在正式部署前已恢复。当前观察不证明上游问题已永久解决。
 
 ## 变更与回滚边界

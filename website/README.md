@@ -1,6 +1,6 @@
 # CtrlLingo · 译点官网
 
-AI 多语言输入助手的单页官网与个人项目展示。阶段 04 已完成本地视觉回归和发布材料准备；最终视觉效果由项目方验收，尚未部署到公网。
+AI 多语言输入助手的单页官网与个人项目展示。阶段 04 已完成本地视觉回归；2026-10-24 已部署至 Cloudflare Pages，并完成正式域名和预览地址的 Edge / Playwright 浏览器检查。实体手机、Safari 等仍待验证，详见 `docs/VALIDATION.md`。
 
 导航、Hero、产品价值、Bento 功能、三步流程、使用场景、真实软件预览、设计故事、开源说明、FAQ、底部 CTA 和页脚共用同一套响应式组件。Hero 是预设文本交互演示，不连接 AI API 或真实输入法；产品预览中的截图和约 47 秒录屏由项目方提供。
 
@@ -8,7 +8,7 @@ AI 多语言输入助手的单页官网与个人项目展示。阶段 04 已完�
 
 - 已验证：Windows，Node.js 24.22.1，pnpm 11.25.0。
 - `package.json` 要求 Node.js 24+，并记录包管理器版本；实际依赖由 `pnpm-lock.yaml` 固定。
-- 官网发布拟复用同一 GitHub 仓库的 `website` 分支 `website/` 目录；`main` 分支继续维护输入法软件，原始本地官网目录 `ctrllingo-web` 保持独立。此说明记录的是发布方案，不代表内容已推送或上线。
+- 官网线上源码来自 GitHub 仓库 `boluomi2001/ctrllingo` 的 `website` 分支 `website/` 目录；`main` 分支继续维护输入法软件。原始本地目录 `ctrllingo-web` 是独立开发副本。官网变更应提交到 `website` 分支中的 `website/`，不要提交到 `main`。
 
 ## 本地运行
 
@@ -31,7 +31,7 @@ pnpm run build
 pnpm run preview
 ```
 
-构建输出为 `dist/`；`preview` 只用于本地检查构建产物。线上请将 `dist/` 交给静态托管服务，不要将开发服务器作为公网生产服务，也不要直接双击 `dist/index.html`。
+构建输出为 `dist/`；`preview` 只用于本地检查构建产物。Cloudflare Pages 已配置从仓库 `website` 分支的 `website/` 根目录执行 `pnpm run build` 并发布 `dist/`；已启用 `website/*` 推送自动构建。每次构建和正式版本切换应在 Pages 部署历史核对。不要将开发服务器作为公网生产服务，也不要直接双击 `dist/index.html`。配置与变更方法见 `docs/CLOUDFLARE.md` 和 `docs/DEPLOYMENT.md`。
 
 ## 结构
 
@@ -66,4 +66,4 @@ pnpm run preview
 
 ## 当前验收状态
 
-已验证与待测项目见 `docs/VALIDATION.md`。完整截图、修复前后记录与验收报告另附于阶段 04 交付目录。实体手机、Safari / Firefox、辅助阅读器、线上 CDN 与真实用户性能仍需进一步测试。
+截至 2026-10-24，正式站 `https://liyuxing.icu/`、`https://www.liyuxing.icu/` 与预览站 `https://ctrllingo-website.pages.dev/` 均已完成实际 Edge / Playwright 1440px 与 390px 检查。已完成事项、视频业务前后基线与尚待验证的范围见 `docs/VALIDATION.md`。实体手机、Safari / Firefox、辅助阅读器、线上 Core Web Vitals 与搜索收录仍需后续检查。
